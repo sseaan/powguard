@@ -1,0 +1,26 @@
+# 构建产物
+/bin/
+/dist/
+capgo
+capd-go
+*.exe
+
+# 本地数据与密钥
+*.db
+*.sqlite
+*.sqlite3
+.data/
+.env
+.env.*
+!.env.example
+
+# Go
+*.test
+*.out
+coverage.*
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+.vscode/
+*.swp
