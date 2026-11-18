@@ -24,3 +24,7 @@ coverage.*
 .idea/
 .vscode/
 *.swp
+
+# Node（仅 oracle/开发用）
+node_modules/
+package-lock.json.bak

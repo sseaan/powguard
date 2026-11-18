@@ -1,0 +1,15 @@
+{
+  "name": "capgo-oracle",
+  "private": true,
+  "description": "官方 cap 包锁定版本 fixture 生成 oracle —— 仅用于开发/测试，不进入运行时",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@cap.js/server": "4.0.5",
+    "@cap.js/widget": "0.1.63",
+    "@cap.js/wasm": "0.0.8",
+    "capjs-core": "0.1.18"
+  }
+}

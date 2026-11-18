@@ -1,0 +1,53 @@
+{
+  "source": "capjs-core@0.1.18 src/crypto.js",
+  "jwt": {
+    "secret": "jwt-fixture-secret-0123456789abcdef",
+    "payload": {
+      "n": "0123456789abcdef",
+      "c": 2,
+      "s": 16,
+      "d": 3,
+      "exp": 1737000000000,
+      "iat": 1736999400000,
+      "sk": "twikoo"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuIjoiMDEyMzQ1Njc4OWFiY2RlZiIsImMiOjIsInMiOjE2LCJkIjozLCJleHAiOjE3MzcwMDAwMDAwMDAsImlhdCI6MTczNjk5OTQwMDAwMCwic2siOiJ0d2lrb28ifQ.pIs6lbV7kgEv21IYv9ODMTw0LZARslHBtG0mrphbVxM",
+    "header": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+    "tamperedLastChar": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuIjoiMDEyMzQ1Njc4OWFiY2RlZiIsImMiOjIsInMiOjE2LCJkIjozLCJleHAiOjE3MzcwMDAwMDAwMDAsImlhdCI6MTczNjk5OTQwMDAwMCwic2siOiJ0d2lrb28ifQ.pIs6lbV7kgEv21IYv9ODMTw0LZARslHBtG0mrphbVxA",
+    "verifyGood": {
+      "n": "0123456789abcdef",
+      "c": 2,
+      "s": 16,
+      "d": 3,
+      "exp": 1737000000000,
+      "iat": 1736999400000,
+      "sk": "twikoo"
+    },
+    "verifyBad": null,
+    "notJwt": null,
+    "twoDots": null,
+    "fourDots": null
+  },
+  "gcm": {
+    "info": "cap:fmt2-v1",
+    "secret": "capgo-fixture-secret-32-bytes-min!!",
+    "data": {
+      "expected": [
+        {
+          "protocol": "sha256-pow",
+          "salt": "cafebabe",
+          "target": "000"
+        }
+      ]
+    },
+    "blobFromCore": "784SMVJdMzjFwYRF6rubdkWUKbvp1SBBqo9xt5yyU-2MTADlrvULjGKPFr3zuFuciGLaTE8j9fFy0y47FnMv7ZyOb2QeE4Ky4lHuE7vwGZW1yDbp25rY2jGv7wkpWfCWoNneQzc",
+    "roundtrip": {
+      "a": 1,
+      "list": [
+        1,
+        2,
+        3
+      ]
+    }
+  }
+}

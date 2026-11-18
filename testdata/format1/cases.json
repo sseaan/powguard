@@ -1,0 +1,288 @@
+{
+  "source": "@cap.js/server@4.0.5",
+  "generatedAt": 1795015441731,
+  "cases": [
+    {
+      "name": "default_lifecycle",
+      "config": {
+        "challengeCount": 50,
+        "challengeSize": 32,
+        "challengeDifficulty": 4,
+        "expiresMs": 600000
+      },
+      "challenge": {
+        "challenge": {
+          "c": 50,
+          "s": 32,
+          "d": 4
+        },
+        "token": "cbbf2c39a2e676279194fbffc5dd7720edead9d4d492d43619",
+        "expires": 1795016041734
+      },
+      "challengeState": {
+        "expires": 1795016041734,
+        "challenge": {
+          "c": 50,
+          "s": 32,
+          "d": 4
+        }
+      },
+      "solutions": [
+        104662,
+        128653,
+        13657,
+        51335,
+        109570,
+        181932,
+        49786,
+        138968,
+        87876,
+        86041,
+        30082,
+        41382,
+        49230,
+        34023,
+        1956,
+        140848,
+        3069,
+        75550,
+        35942,
+        89246,
+        6425,
+        39414,
+        13175,
+        3110,
+        45354,
+        136140,
+        37789,
+        128072,
+        53478,
+        149998,
+        42207,
+        71679,
+        44988,
+        24701,
+        131061,
+        50063,
+        36873,
+        88990,
+        45985,
+        81351,
+        21767,
+        42724,
+        73749,
+        14356,
+        258560,
+        114206,
+        16018,
+        165154,
+        187009,
+        54322
+      ],
+      "redeem": {
+        "success": true,
+        "token": "d3a56d754940980e:98d793a4076b882b57dec4431a6c67",
+        "expires": 1795016642781
+      },
+      "tokenStateKey": "d3a56d754940980e:9e7df6ffa9f04507bd9dc876c36205ab769d5e9a8bf1ac321445ab6f9f1566d2",
+      "tokenStateExpires": 1795016642781,
+      "firstValidate": {
+        "success": true
+      },
+      "replayValidate": {
+        "success": false
+      }
+    },
+    {
+      "name": "small_params",
+      "config": {
+        "challengeCount": 2,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": 600000
+      },
+      "challenge": {
+        "challenge": {
+          "c": 2,
+          "s": 16,
+          "d": 3
+        },
+        "token": "39b70ca058ec9ce32163d294c9b6bc1ad71a66ef5851464082",
+        "expires": 1795016042781
+      },
+      "challengeState": {
+        "expires": 1795016042781,
+        "challenge": {
+          "c": 2,
+          "s": 16,
+          "d": 3
+        }
+      },
+      "solutions": [
+        855,
+        15307
+      ],
+      "redeem": {
+        "success": true,
+        "token": "8ce5f0132c560196:ff3bd73215362284678c25bc80cb24",
+        "expires": 1795016642787
+      },
+      "tokenStateKey": "8ce5f0132c560196:a5475fa78225defec4521d7d8e846dfd3db10759a9a9a96a420765af93d93bc9",
+      "firstValidate": {
+        "success": true
+      },
+      "replayValidate": {
+        "success": false
+      }
+    },
+    {
+      "name": "wrong_solution_burns_challenge",
+      "config": {
+        "challengeCount": 1,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": 600000
+      },
+      "challenge": {
+        "challenge": {
+          "c": 1,
+          "s": 16,
+          "d": 3
+        },
+        "token": "25487ef5e5b0f3631a39f477662242bf2c08d599e66e488d09",
+        "expires": 1795016042788
+      },
+      "challengeState": {
+        "expires": 1795016042788,
+        "challenge": {
+          "c": 1,
+          "s": 16,
+          "d": 3
+        }
+      },
+      "goodSolutions": [
+        2455
+      ],
+      "wrongSolutions": [
+        2456
+      ],
+      "redeemWrong": {
+        "success": false,
+        "message": "Invalid solution"
+      },
+      "redeemAgain": {
+        "success": false,
+        "message": "Challenge invalid or expired"
+      }
+    },
+    {
+      "name": "expired_challenge",
+      "config": {
+        "challengeCount": 1,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": -60000
+      },
+      "challenge": {
+        "challenge": {
+          "c": 1,
+          "s": 16,
+          "d": 3
+        },
+        "token": "fcdc8821c2924d525dd691e0192541bf780bdc9f18dba74d6f",
+        "expires": 1795015382788
+      },
+      "challengeState": {
+        "expires": 1795015382788,
+        "challenge": {
+          "c": 1,
+          "s": 16,
+          "d": 3
+        }
+      },
+      "solutions": [
+        765
+      ],
+      "redeem": {
+        "success": false,
+        "message": "Challenge invalid or expired"
+      }
+    },
+    {
+      "name": "invalid_bodies",
+      "missingToken": {
+        "success": false,
+        "message": "Invalid body"
+      },
+      "missingSolutions": {
+        "success": false,
+        "message": "Invalid body"
+      },
+      "solutionsNotArray": {
+        "success": false,
+        "message": "Invalid body"
+      },
+      "solutionsNotNumbers": {
+        "success": false,
+        "message": "Invalid body"
+      },
+      "unknownToken": {
+        "success": false,
+        "message": "Challenge invalid or expired"
+      }
+    },
+    {
+      "name": "verification_token_structure",
+      "challenge": {
+        "challenge": {
+          "c": 1,
+          "s": 16,
+          "d": 3
+        },
+        "token": "99de1bf52a62a5af0a29e154461fe76cd73f95da56c0fa4d60",
+        "expires": 1795016042788
+      },
+      "solutions": [
+        928
+      ],
+      "redeemToken": "c13547e569156985:99a6b4267d1eff770696f22c9d5cbf",
+      "idPart": "c13547e569156985",
+      "verPart": "99a6b4267d1eff770696f22c9d5cbf",
+      "verPartIsHex30": true,
+      "storedKeyDerived": "c13547e569156985:ca998bfca1156e1509198e7c7133c20dd2a11839002b8bba8c6df4e2c904d1b5",
+      "validateFresh": {
+        "keep1": {
+          "success": true
+        },
+        "keep2": {
+          "success": true
+        },
+        "consumeAfterKeep": {
+          "success": true
+        }
+      },
+      "validateOneShot": {
+        "first": {
+          "success": true
+        },
+        "second": {
+          "success": false
+        }
+      },
+      "malformedTokens": {
+        "empty": {
+          "success": false
+        },
+        "onePart": {
+          "success": false
+        },
+        "threeParts": {
+          "success": false
+        },
+        "emptyPart": {
+          "success": false
+        }
+      }
+    }
+  ]
+}

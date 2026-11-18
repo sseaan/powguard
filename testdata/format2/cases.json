@@ -1,0 +1,309 @@
+{
+  "source": "capjs-core@0.1.18",
+  "secret": "capgo-fixture-secret-32-bytes-min!!",
+  "generatedAt": 1795015441731,
+  "cases": [
+    {
+      "name": "sha256_lifecycle",
+      "opts": {
+        "format": 2,
+        "protocols": [
+          "sha256-pow"
+        ],
+        "challengeCount": 3,
+        "challengeSize": 32,
+        "challengeDifficulty": 3,
+        "expiresMs": 600000,
+        "scope": "twikoo"
+      },
+      "challenge": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiZGI4MjQ0MjIyNDllOGQ0MTRlM2NmMTI1OTcwMzQyZTciLCJleHAiOjE3OTUwMTYwNDI3OTQsImlhdCI6MTc5NTAxNTQ0Mjc5NCwiZXYiOiI2V0JCZzctRk4teHRWYkpYTW9nT3VKWUdpMmV2SnA4X09OUlZUNEw2RFVMMDlaQlplcnRJNTIyU2pkU1o0Qm9JU2dQRXVnNTFYSW5XQlV4R042OF8zQ3JfMXdHYWFqbWQwdVhOdmEzMXBsRkVrUUZmQWdqdVNMQTBlMk0tSzBZb1B1SGZGUVc0M3NGMHd6QnVkdnU5UnE4NUJqamVhNmN0VVllQXd4YjlfOW4taklpeVBBcmx0LTBtcmNMWkNoOE5tM0dZSjNpT19ZU210UFpkSkZBclZyZ3ZRVjBkci1Kb3dnUVQ1c01ST1JHNGFtd2dJTGZuNExNUkx5OUh3NGNaTnhWWERvWDNzVHgzWktReTctVkdoWXBGMWItNEljU2NFSWtKUzZLOW1hUmRtQks5VS1TTmRtNnpUQy1JTXZXUFJiaFY4enllYk5IRVVYaWxwSm5HV3FCbEV4MGpuMVQzTS1VcWw0dG9uYW9Bbm1VSkNsUE9fWG5iLTJqcTF1OHdiYmtrM1pjZXItOEQwM0RSeUk0dU03R0M1c0JqMy0yWE1NOWQ4b1BteE04cHQ5aVlQSlpIQUxWTHNUOGV5bGJTYjU1bk5nN2R3Sl9TNUhPNG5ucFFjWHJkRGh4V0g3dkZkMGNjWWM4VThNV2M1YkRIdTR1SnVzaGw2MDRRc0YtaldNNl8iLCJzayI6InR3aWtvbyJ9.ML2AHQtHQwCrcchdVzSGpOk5Hd0H1uIWaHBrmhC8MS0",
+        "format": 2,
+        "challenges": [
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "b06c3147fb2abc3470c4d97266d2d428ae4c263ca6f66701f43883c8657b5273",
+              "target": "000"
+            }
+          },
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "67fb6c051605c39dd61945431fb46209e54f5ad18edd9ba4e5ae93e10bb757e6",
+              "target": "000"
+            }
+          },
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "5af69994f11d488cd90554b9d3e055678f6775e61aeae9f5cb4f02a8f02d3969",
+              "target": "000"
+            }
+          }
+        ],
+        "expires": 1795016042794
+      },
+      "solutions": [
+        {
+          "nonce": 8525
+        },
+        {
+          "nonce": 5808
+        },
+        {
+          "nonce": 415
+        }
+      ],
+      "validate": {
+        "success": true,
+        "token": "812ad6762e7f314d:2cb9862db3cc3582126ca6bbde660f",
+        "tokenKey": "812ad6762e7f314d:007600b71beae23f1e5daf21f88bceaf529a87ac54cf2e35e6ec8d5ef8fc4b57",
+        "expires": 1795016642798,
+        "scope": "twikoo",
+        "iat": 1795015442794,
+        "riskFlags": []
+      },
+      "claims": {
+        "f": 2,
+        "n": "db824422249e8d414e3cf125970342e7",
+        "exp": 1795016042794,
+        "iat": 1795015442794,
+        "ev": "6WBBg7-FN-xtVbJXMogOuJYGi2evJp8_ONRVT4L6DUL09ZBZertI522SjdSZ4BoISgPEug51XInWBUxGN68_3Cr_1wGaajmd0uXNva31plFEkQFfAgjuSLA0e2M-K0YoPuHfFQW43sF0wzBudvu9Rq85Bjjea6ctUYeAwxb9_9n-jIiyPArlt-0mrcLZCh8Nm3GYJ3iO_YSmtPZdJFArVrgvQV0dr-JowgQT5sMRORG4amwgILfn4LMRLy9Hw4cZNxVXDoX3sTx3ZKQy7-VGhYpF1b-4IcScEIkJS6K9maRdmBK9U-SNdm6zTC-IMvWPRbhV8zyebNHEUXilpJnGWqBlEx0jn1T3M-Uql4tonaoAnmUJClPO_Xnb-2jq1u8wbbkk3Zcer-8D03DRyI4uM7GC5sBj3-2XMM9d8oPmxM8pt9iYPJZHALVLsT8eylbSb55nNg7dwJ_S5HO4nnpQcXrdDhxWH7vFd0ccYc8U8MWc5bDHu4uJushl604QsF-jWM6_",
+        "sk": "twikoo"
+      },
+      "expectedDecrypted": {
+        "expected": [
+          {
+            "protocol": "sha256-pow",
+            "salt": "b06c3147fb2abc3470c4d97266d2d428ae4c263ca6f66701f43883c8657b5273",
+            "target": "000"
+          },
+          {
+            "protocol": "sha256-pow",
+            "salt": "67fb6c051605c39dd61945431fb46209e54f5ad18edd9ba4e5ae93e10bb757e6",
+            "target": "000"
+          },
+          {
+            "protocol": "sha256-pow",
+            "salt": "5af69994f11d488cd90554b9d3e055678f6775e61aeae9f5cb4f02a8f02d3969",
+            "target": "000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "expired",
+      "opts": {
+        "format": 2,
+        "protocols": [
+          "sha256-pow"
+        ],
+        "challengeCount": 1,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": -60000,
+        "scope": "twikoo"
+      },
+      "challenge": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiMzU2MGI3Zjg2MDE3ODRmYjJmNmNkOGQ2NGQzMmJjNDgiLCJleHAiOjE3OTUwMTUzODI3OTgsImlhdCI6MTc5NTAxNTQ0Mjc5OCwiZXYiOiJWUXZxWTUxMzRWX1d0MzFZYUFGSWs1Y2x3SVliN3pBMXFWOVhvVzlLdm5iLURJNDRUdU9VemVuRGowaHFsQ1hWb040cDBiRG5YUXNJYmxfMjVKLWdDVFFIcDBVUGFJZHJFUFZGaUlRSjJ6M0p0Y01ieUgzcnNCQUkzR3NmYzVwaFVNNjVaY2RLTXE1Z1lkbXRuTWVScENsLWZuTFlPYWk1cUFodFI5QSIsInNrIjoidHdpa29vIn0.xJf-SlVTMXJM0bKKmttLH7iudv0Dsxi9j6mja7Lyn-s",
+        "format": 2,
+        "challenges": [
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "47f26c4bb8b7ec99dbe208527bd1fbf4",
+              "target": "000"
+            }
+          }
+        ],
+        "expires": 1795015382798
+      },
+      "solutions": [
+        {
+          "nonce": 1188
+        }
+      ],
+      "validate": {
+        "success": false,
+        "reason": "expired"
+      }
+    },
+    {
+      "name": "wrong_solution",
+      "opts": {
+        "format": 2,
+        "protocols": [
+          "sha256-pow"
+        ],
+        "challengeCount": 1,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": 600000
+      },
+      "challenge": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiYmJmZGFkMDdlMTcyM2I2YWQxZjg4ZDI4OTQ1NzBjOGMiLCJleHAiOjE3OTUwMTYwNDI3OTgsImlhdCI6MTc5NTAxNTQ0Mjc5OCwiZXYiOiJNWDA3N2R4OVJEbDlMbTc1YWRUbkxlbWNNWkVXRTlwaVRlTzVpRE1tQ3VrOXhqd1VZcDliOFZHbzREdUlFNFhpb2tsbEFObUxsWnBzWUtsR2pPWHg2M1Q3dGdQdUtDS3NzMWg2S2YtcTdRdnhrSlcwRlgtcUVvRmZCQW5WdW9od1pMZzBhREhyTWxhWXQ3RHhDMm5sQi0tZ3ZXNXIxN0dSdFFwSmNXQSJ9.aLDl7JOlsDdm4CeNwtilv8Sf14dZPK-JbHHusfWyPig",
+        "format": 2,
+        "challenges": [
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "edd49084f830b11b25c3d7718e0931a2",
+              "target": "000"
+            }
+          }
+        ],
+        "expires": 1795016042798
+      },
+      "goodSolutions": [
+        {
+          "nonce": 1292
+        }
+      ],
+      "wrongSolutions": [
+        {
+          "nonce": 1293
+        }
+      ],
+      "validate": {
+        "success": false,
+        "reason": "invalid_solution"
+      }
+    },
+    {
+      "name": "malformed_solutions",
+      "opts": {
+        "format": 2,
+        "protocols": [
+          "sha256-pow"
+        ],
+        "challengeCount": 2,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": 600000
+      },
+      "challenge": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiYzQ5MGYyM2QxZWFmYWYyYWQ4YTRkOTc4OWNkYjQ2N2MiLCJleHAiOjE3OTUwMTYwNDI3OTksImlhdCI6MTc5NTAxNTQ0Mjc5OSwiZXYiOiJZd0pYYVRWaTJBZ2pwSnJwOGFJM1pxbU5mbFpGRFhDNk1uT2oyNWlvbTdBN3ozZVl2MEs1ODlZSEhEekFycWF6REw5MzFmZEt3bndRM2FhZDZmd0Q1X2xpXzhkemVpWmE5QUdqNEdqT0VzQmluTE1IbWlkTldBcS1xOWl3UGxZRWxBTjhsWUFDTzBhMWxDaGFFUi03YzZSbHJvTzJuOEc5Ry0xdHhRLUhyWVJ5WlBvemRPUnlRcjZMU3VnQ1h2NEpCa2ljOFZNbVh0b2Z6S04xLV9wVkJsZ2pyM0g2cHdPMHRGZGFrbC1IS3lHci1DYXRhWEdnaXRRSWZ5cm1wQ3N0Y1YyTGdMQnpiZ2FPZlFWX0QtNjhQQSJ9.6AJwJ8jc-jbPhfAdVvHljvoMOhxeOFOwR6eFWvIzyhc",
+        "format": 2,
+        "challenges": [
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "5240a0686f3cb4de1259fe8b7e53b2ec",
+              "target": "000"
+            }
+          },
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "de01563942140564d3b4a90a37c5dfe8",
+              "target": "000"
+            }
+          }
+        ],
+        "expires": 1795016042799
+      },
+      "shortSolutions": {
+        "success": false,
+        "reason": "invalid_solutions"
+      },
+      "nonObjectSolutions": {
+        "success": false,
+        "reason": "invalid_solution"
+      },
+      "stringNonceFirst": {
+        "success": false,
+        "reason": "invalid_solution"
+      },
+      "emptySolutions": {
+        "success": false,
+        "reason": "invalid_solutions"
+      }
+    },
+    {
+      "name": "secret_and_scope",
+      "opts": {
+        "format": 2,
+        "protocols": [
+          "sha256-pow"
+        ],
+        "challengeCount": 1,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": 600000
+      },
+      "challenge": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiMGNjZjI2NWI4MjNkOTc5Y2UzYjEzZWQ4NGU3ZDVjNjMiLCJleHAiOjE3OTUwMTYwNDI3OTksImlhdCI6MTc5NTAxNTQ0Mjc5OSwiZXYiOiJ2c2QwcGhnaWhEeHBmRExYU2I5NEpiQnl6MW9rWlNCME9hT3hrdDNhMFp1OHlkdlpVRVM0cHQzNTFjb3pfdnpITW13S2lqSzFEN3prQnhmaXFNQ1NpLWtfUkJqb1cwZzlmWlV4Tmg4WEtRb3F0RjFLMngwRFNHc0E3OG5OWDhEX1k1QnlqZ0tjbWJIeVo4ZXVXY1ktTTd6VUE2YTNYVC0zQlR4RGJMSSJ9.RLtOIk3AO5GgYLcOPMPmcfmTzjEL3Tvbpa0Q87K9dNY",
+        "format": 2,
+        "challenges": [
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "e552c67144e6c20c3ba273cfbce38efd",
+              "target": "000"
+            }
+          }
+        ],
+        "expires": 1795016042799
+      },
+      "solutions": [
+        {
+          "nonce": 3247
+        }
+      ],
+      "wrongSecret": {
+        "success": false,
+        "reason": "invalid_token"
+      },
+      "scopeMismatch": {
+        "success": false,
+        "reason": "scope_mismatch"
+      }
+    },
+    {
+      "name": "consume_nonce",
+      "opts": {
+        "format": 2,
+        "protocols": [
+          "sha256-pow"
+        ],
+        "challengeCount": 1,
+        "challengeSize": 16,
+        "challengeDifficulty": 3,
+        "expiresMs": 600000
+      },
+      "challenge": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiYjkwMGZlNjA3MDQxOTJhMTI3MTg4ZmNjNDgzNjRjNDkiLCJleHAiOjE3OTUwMTYwNDI4MDAsImlhdCI6MTc5NTAxNTQ0MjgwMCwiZXYiOiJmWUt6VFp4U1U5cWI4Skp2WlBjNU9hYlBTODZxOUM2Z2RCajNPcGstOXpZMktDS2NZb0ZLTWpXaUs4cmVKTEFMVXhrUU5CWi1OczllRnpJekc2NWVkSnBqeW05NGk1UC15MjM2b3lJSF9lVlQ1Wml1OUJ6UnRETDY0MW1ULTdEU1EyR2JGQW9rZ1VPYi1SV1IxUG5LSXBiNmlGOFVqVWg2cXZEclBOZyJ9.XPt_M0O4vcfO_qh9BYcS_FB4gI29HdbVYOtYezIO0Es",
+        "format": 2,
+        "challenges": [
+          {
+            "protocol": "sha256-pow",
+            "payload": {
+              "salt": "a371ad1763c330e43015c0604d429aaa",
+              "target": "000"
+            }
+          }
+        ],
+        "expires": 1795016042800
+      },
+      "solutions": [
+        {
+          "nonce": 3249
+        }
+      ],
+      "first": {
+        "success": true,
+        "token": "209a097f8db91b7d:6bc47aaddd5ce6488926b5891c842d",
+        "tokenKey": "209a097f8db91b7d:232fef8a0b4b6ec81d7bff02d3885894e3c6c86325152b7a62dc318f316c1150",
+        "expires": 1795016642803,
+        "scope": null,
+        "iat": 1795015442800,
+        "riskFlags": []
+      },
+      "replay": {
+        "success": false,
+        "reason": "already_redeemed"
+      }
+    }
+  ]
+}
