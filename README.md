@@ -28,13 +28,15 @@ siteverify ← { secret, response } → { success }   // 常数时间比较 secr
 
 ## 路线图
 
-- [ ] PRNG 对拍向量（oracle：官方包 + cap-php 的 `prng-vectors.json`）
-- [ ] 协议核心（challenge / redeem / validate，内存存储 + 原子一次性消费）
-- [ ] HTTP 面（CORS、`?wasm=0` 容忍、每 IP 限流、站点路由）
-- [ ] SQLite 层（site_keys / events / sessions；secret 以 admin key 派生密钥加密存储）
+- [x] PRNG 对拍向量（oracle：官方包双实现交叉断言，`tools/oracle`）
+- [x] 协议核心（challenge / redeem / validate，内存存储 + 原子一次性消费）
+- [x] HTTP 面（CORS、`?wasm=0` 容忍、每 IP 限流、站点路由）
+- [x] SQLite 层（sites / site_secrets / admin_sessions / events / settings；secret 以 `CAPGO_MASTER_KEY` AES-256-GCM 加密 + AAD 绑定）
+- [x] 管理 API（admin key 登录、会话 cookie、CSRF、站点 CRUD、reveal/rotate 再认证、事件/统计查询）
+- [x] capsolve CLI（测试与压测工具）
+- [x] 真实浏览器 e2e（未修改 widget 0.1.63 + 同源 WASM）
 - [ ] WebUI v1（登录、密钥管理、集成片段、SSE 事件流、基础统计）
-- [ ] capsolve CLI（测试与压测工具）
-- [ ] 互操作与浏览器 e2e 测试
+- [ ] format-2 SHA-256 接入公开端点与按站点策略（核心库已双向对拍）
 - [ ] 部署（systemd + Caddy）与 Twikoo 对接验收
 
 ## 许可证

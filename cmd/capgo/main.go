@@ -1,29 +1,47 @@
-// capgo —— 单二进制 Cap PoW 人机验证服务（P1：format-1 + Twikoo 纵向切片）。
+// capgo —— 单二进制 Cap PoW 人机验证服务。
 //
-// 环境变量（P1 阶段；SQLite/管理面板在后续里程碑接入）：
+// 环境变量：
 //
-//	CAPGO_ADDR          监听地址（默认 127.0.0.1:3000）
-//	CAPGO_SITE_SLUG     站点 slug（默认 twikoo；小写字母/数字/-/_，1–32）
-//	CAPGO_SITE_SECRET   siteverify 密钥；未设置则每次启动随机生成（重启即失效，
-//	                    仅适合本机演示；生产必须显式设置）
+//	CAPGO_ADDR            监听地址（默认 127.0.0.1:3000）
+//	CAPGO_DB_PATH         SQLite 路径（默认 ./capgo.sqlite3）
+//	CAPGO_MASTER_KEY      32 字节（hex 或 base64）。已有密文的库缺此 key 将拒绝启动；
+//	                      全新库可缺省（自动生成临时 key，重启后密钥不可用，仅限本机演示）
+//	CAPGO_ADMIN_KEY       管理面板登录密钥；缺省则管理面板整体禁用
+//	CAPGO_TRUST_PROXY     可信反代网段（逗号分隔 CIDR，如 127.0.0.1/8）；
+//	                      配置后才读取 X-Forwarded-For（PLAN.md §6.3）
+//	CAPGO_PUBLIC_URL      公开 URL（https 时 cookie 自动 Secure；展示用）
+//
+// 首次启动（库中无站点）会用 CAPGO_SITE_SLUG / CAPGO_SITE_SECRET 引导首个站点；
+// 此后站点以 SQLite 为准（管理面板维护）。
 package main
 
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
+	"capgo/internal/api/admin"
 	"capgo/internal/api/middleware"
 	"capgo/internal/api/public"
+	"capgo/internal/events"
 	"capgo/internal/policy"
+	"capgo/internal/protocol/format1"
+	"capgo/internal/security/secretbox"
+	"capgo/internal/security/session"
 	"capgo/internal/store/memory"
+	"capgo/internal/store/model"
+	"capgo/internal/store/sqlite"
 	"capgo/web"
 )
 
@@ -34,50 +52,168 @@ func env(key, def string) string {
 	return def
 }
 
+// parseMasterKey 解析 hex 或 base64 的 32 字节 key。
+func parseMasterKey(s string) ([]byte, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	if raw, err := hex.DecodeString(s); err == nil && len(raw) == 32 {
+		return raw, nil
+	}
+	if raw, err := base64.StdEncoding.DecodeString(s); err == nil && len(raw) == 32 {
+		return raw, nil
+	}
+	if raw, err := base64.RawURLEncoding.DecodeString(s); err == nil && len(raw) == 32 {
+		return raw, nil
+	}
+	return nil, fmt.Errorf("CAPGO_MASTER_KEY 必须是 32 字节（hex 或 base64）")
+}
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
 	addr := env("CAPGO_ADDR", "127.0.0.1:3000")
-	slug := env("CAPGO_SITE_SLUG", "twikoo")
-	secret := os.Getenv("CAPGO_SITE_SECRET")
-	ephemeralSecret := false
-	if secret == "" {
-		buf := make([]byte, 32)
-		if _, err := rand.Read(buf); err != nil {
-			logger.Error("generate ephemeral secret failed", "err", err)
-			os.Exit(1)
-		}
-		secret = hex.EncodeToString(buf)
-		ephemeralSecret = true
-	}
+	dbPath := env("CAPGO_DB_PATH", "capgo.sqlite3")
+	publicURL := env("CAPGO_PUBLIC_URL", "")
 
-	site, err := policy.NewSite(slug, secret)
+	db, err := sqlite.Open(dbPath)
 	if err != nil {
-		logger.Error("invalid site config", "err", err)
+		logger.Error("open db failed", "err", err)
 		os.Exit(1)
 	}
-	if ephemeralSecret {
-		// 不打印 secret 本体（PLAN.md §6.2：密钥不落日志）
-		logger.Warn("CAPGO_SITE_SECRET 未设置，已生成临时密钥（重启失效，仅供本机演示）")
+	siteRepo := sqlite.NewSiteRepo(db)
+	secretRepo := sqlite.NewSecretRepo(db)
+	eventRepo := sqlite.NewEventRepo(db)
+	sessionRepo := sqlite.NewSessionRepo(db)
+	settingsRepo := sqlite.NewSettingsRepo(db)
+
+	// ---- master key：已有密文则必须提供，且需能解开
+	masterRaw, err := parseMasterKey(os.Getenv("CAPGO_MASTER_KEY"))
+	if err != nil {
+		logger.Error("invalid CAPGO_MASTER_KEY", "err", err)
+		os.Exit(1)
+	}
+	ephemeralMaster := false
+	if masterRaw == nil {
+		if has, _ := secretRepo.HasAnySecrets(); has {
+			logger.Error("库中已有加密密钥但未提供 CAPGO_MASTER_KEY，拒绝启动（密文不可恢复，PLAN.md §6.2）")
+			os.Exit(1)
+		}
+		buf := make([]byte, 32)
+		if _, err := rand.Read(buf); err != nil {
+			logger.Error("generate ephemeral master key failed", "err", err)
+			os.Exit(1)
+		}
+		masterRaw = buf
+		ephemeralMaster = true
+		logger.Warn("CAPGO_MASTER_KEY 未设置：已生成临时 master key（重启后密文不可用，仅限本机演示；生产必须显式配置并独立备份）")
+	}
+	box, err := secretbox.New(masterRaw)
+	if err != nil {
+		logger.Error("secretbox init failed", "err", err)
+		os.Exit(1)
 	}
 
-	h := &public.Handler{
-		Sites:      &policy.StaticResolver{Site: site},
+	// ---- 首站点 bootstrap（仅当库中无站点）
+	if n, _ := siteRepo.Count(); n == 0 {
+		slug := env("CAPGO_SITE_SLUG", "twikoo")
+		secret := os.Getenv("CAPGO_SITE_SECRET")
+		ephemeralSiteSecret := false
+		if secret == "" {
+			buf := make([]byte, 24)
+			if _, err := rand.Read(buf); err != nil {
+				logger.Error("generate ephemeral site secret failed", "err", err)
+				os.Exit(1)
+			}
+			secret = hex.EncodeToString(buf)
+			ephemeralSiteSecret = true
+		}
+		if err := bootstrapSite(siteRepo, secretRepo, box, slug, secret); err != nil {
+			logger.Error("bootstrap site failed", "err", err)
+			os.Exit(1)
+		}
+		if ephemeralSiteSecret {
+			logger.Warn("CAPGO_SITE_SECRET 未设置，首站点已生成临时 secret（重启失效，仅供本机演示）")
+		}
+		logger.Info("bootstrapped first site", "slug", slug)
+	}
+
+	resolver := policy.NewDBResolver(siteRepo, secretRepo, box)
+
+	// ---- 事件 sink（异步审计）
+	sink := events.NewSink(eventRepo, box.DeriveIPDigestKey(), 2048)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	sink.Start(ctx)
+
+	// ---- IP 提取模式
+	var ips *middleware.IPExtractor
+	if cidrs := os.Getenv("CAPGO_TRUST_PROXY"); cidrs != "" {
+		e, err := middleware.NewIPExtractor(cidrs)
+		if err != nil {
+			logger.Error("invalid CAPGO_TRUST_PROXY", "err", err)
+			os.Exit(1)
+		}
+		ips = e
+		logger.Info("trusted proxy mode enabled", "cidrs", cidrs)
+	} else {
+		logger.Info("direct mode: X-Forwarded-For 被忽略")
+	}
+
+	pub := &public.Handler{
+		Sites:      resolver,
 		Challenges: memory.NewChallengeStore(),
 		Tokens:     memory.NewTokenStore(),
 		Limiter:    memory.NewRateLimiter(),
 		Clock:      func() int64 { return time.Now().UnixMilli() },
 		Logger:     logger,
+		Events:     sink,
+		IPs:        ips,
 	}
 
 	mux := http.NewServeMux()
-	h.Register(mux)
+	pub.Register(mux)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
-	web.RegisterStatic(mux, site.Slug)
+
+	adminEnabled := false
+	if adminKey := os.Getenv("CAPGO_ADMIN_KEY"); adminKey != "" {
+		adminEnabled = true
+		cookieSecure := strings.HasPrefix(publicURL, "https://")
+		if v := os.Getenv("CAPGO_COOKIE_SECURE"); v != "" {
+			cookieSecure, _ = strconv.ParseBool(v)
+		}
+		adm := &admin.Handler{
+			AdminKey:     []byte(adminKey),
+			Sessions:     session.NewManager(sessionRepo, 0),
+			Box:          box,
+			Sites:        siteRepo,
+			Secrets:      secretRepo,
+			Events:       eventRepo,
+			Resolver:     resolver,
+			Limiter:      memory.NewRateLimiter(),
+			Clock:        func() int64 { return time.Now().UnixMilli() },
+			Logger:       logger,
+			CookieSecure: cookieSecure,
+		}
+		if err := adm.Register(mux); err != nil {
+			logger.Error("admin register failed", "err", err)
+			os.Exit(1)
+		}
+	} else {
+		logger.Warn("CAPGO_ADMIN_KEY 未设置：管理面板已禁用")
+	}
+
+	// 首站点 slug 供 demo 页使用
+	firstSlug := env("CAPGO_SITE_SLUG", "twikoo")
+	if sites, err := siteRepo.List(); err == nil && len(sites) > 0 {
+		firstSlug = sites[0].Slug
+	}
+	web.RegisterStatic(mux, firstSlug)
 
 	root := middleware.Chain(mux,
 		middleware.Recover(logger),
@@ -89,11 +225,11 @@ func main() {
 		Handler:           root,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      30 * time.Second, // SSE 预留（M4 事件流）
+		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       90 * time.Second,
 	}
 
-	// 后台惰性清理：对齐官方 _lazyCleanup 的 5 分钟节奏
+	// 后台维护：惰性清理 + 事件保留期
 	cleanupStop := make(chan struct{})
 	go func() {
 		t := time.NewTicker(5 * time.Minute)
@@ -102,9 +238,17 @@ func main() {
 			select {
 			case <-t.C:
 				now := time.Now().UnixMilli()
-				h.Challenges.DeleteExpired(now)
-				h.Tokens.DeleteExpired(now)
-				h.Limiter.Cleanup(now, 10*60*1000)
+				pub.Challenges.DeleteExpired(now)
+				pub.Tokens.DeleteExpired(now)
+				pub.Limiter.Cleanup(now, 10*60*1000)
+				session.NewManager(sessionRepo, 0).Cleanup(now)
+				retention := model.DefaultEventRetentionDays
+				if raw, ok, _ := settingsRepo.Get(model.SettingEventRetentionDays); ok {
+					if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+						retention = v
+					}
+				}
+				eventRepo.DeleteOlderThan(now, retention)
 			case <-cleanupStop:
 				return
 			}
@@ -112,7 +256,8 @@ func main() {
 	}()
 
 	go func() {
-		logger.Info("capgo listening", "addr", addr, "site", site.Slug, "ephemeral_secret", ephemeralSecret)
+		logger.Info("capgo listening", "addr", addr, "admin", adminEnabled,
+			"db", dbPath, "ephemeral_master_key", ephemeralMaster)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("listen failed", "err", err)
 			os.Exit(1)
@@ -125,10 +270,43 @@ func main() {
 	logger.Info("shutting down")
 	close(cleanupStop)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("shutdown failed", "err", err)
 	}
+	// 排空事件 sink 后再关库
+	sink.Close(shutdownCtx)
+	if err := db.Close(); err != nil {
+		logger.Error("db close failed", "err", err)
+	}
 	logger.Info("bye")
+}
+
+// bootstrapSite 建首站点并把 secret 加密入库。
+func bootstrapSite(sites *sqlite.SiteRepo, secrets *sqlite.SecretRepo, box *secretbox.Box, slug, secretPlain string) error {
+	m := &model.Site{
+		Slug:                slug,
+		Name:                slug,
+		Enabled:             true,
+		ChallengeCount:      format1.DefaultChallengeCount,
+		ChallengeSize:       format1.DefaultChallengeSize,
+		ChallengeDifficulty: format1.DefaultChallengeDifficulty,
+		ChallengeTTL:        format1.DefaultChallengeTTL,
+		TokenTTL:            format1.DefaultTokenTTL,
+		CORSAllowAll:        true,
+		RateLimitPerWindow:  30,
+		RateLimitWindowMs:   5000,
+	}
+	if err := sites.Create(m); err != nil {
+		return err
+	}
+	ciphertext, err := box.Seal([]byte(secretPlain), m.Slug, model.FieldSiteVerify)
+	if err != nil {
+		return err
+	}
+	return secrets.Put(&model.SiteSecret{
+		SiteID: m.ID, Field: model.FieldSiteVerify,
+		Ciphertext: ciphertext, SchemaVersion: 1,
+	})
 }

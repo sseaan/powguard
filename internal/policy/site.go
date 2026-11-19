@@ -22,7 +22,8 @@ type CORSOrigin = string
 // Site 是一个站点的完整运行时策略。
 type Site struct {
 	Slug         string
-	Secret       string // siteverify 密钥（P1 明文；M2 起 AES-GCM 加密入库）
+	Secret       string // siteverify 密钥（M2 起 AES-GCM 加密入库，运行时解密）
+	Name         string // 展示名（不入线协议）
 	Enabled      bool
 	Challenge    format1.ChallengeConfig
 	ChallengeTTL int64 // 毫秒

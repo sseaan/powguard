@@ -21,9 +21,11 @@ import (
 	"time"
 
 	"capgo/internal/api/middleware"
+	"capgo/internal/events"
 	"capgo/internal/policy"
 	"capgo/internal/protocol/format1"
 	"capgo/internal/store/memory"
+	"capgo/internal/store/model"
 )
 
 // 挑战/兑换请求体上限（capd redeem 语义：256 KiB）。
@@ -38,6 +40,40 @@ type Handler struct {
 	// Clock 返回当前 Unix 毫秒；测试可注入。
 	Clock  func() int64
 	Logger *slog.Logger
+	// Events 非 nil 时异步审计；IP 取摘要不落明文（PLAN.md §6.3）。
+	Events *events.Sink
+	// IPs 为 nil 时用直连 RemoteAddr；配置可信网段后读 XFF。
+	IPs *middleware.IPExtractor
+}
+
+// clientIP 取客户端 IP（直连或可信反代模式）。
+func (h *Handler) clientIP(r *http.Request) string {
+	if h.IPs != nil {
+		return h.IPs.Client(r)
+	}
+	return middleware.ClientIP(r)
+}
+
+// emit 非阻塞投递审计事件；Events 未配置时为空操作。
+func (h *Handler) emit(r *http.Request, siteSlug, typ, outcome, reason, protocol, tokenID string, durMs int64) {
+	if h.Events == nil {
+		return
+	}
+	e := &model.Event{
+		SiteSlug: siteSlug,
+		Type:     typ,
+		Outcome:  outcome,
+		Reason:   reason,
+		Protocol: protocol,
+		TokenID:  tokenID,
+	}
+	if durMs >= 0 {
+		e.DurMs = &durMs
+	}
+	if h.Events != nil {
+		e.IPDigest = h.Events.IPDigest(h.clientIP(r))
+	}
+	h.Events.Emit(e)
 }
 
 func (h *Handler) now() int64 {
@@ -129,19 +165,29 @@ func (h *Handler) applyCORS(w http.ResponseWriter, r *http.Request, site *policy
 
 // rateLimited 执行 challenge/redeem 的每 IP 每站点限流。
 func (h *Handler) rateLimited(w http.ResponseWriter, r *http.Request, site *policy.Site) bool {
-	key := site.Slug + "|" + middleware.ClientIP(r)
+	ip := h.clientIP(r)
+	key := site.Slug + "|" + ip
 	if !h.Limiter.Allow(key, site.RateLimitPerWindow, site.RateLimitWindowMs, h.now()) {
 		w.Header().Set("Retry-After", strconv.FormatInt(site.RateLimitWindowMs/1000+1, 10))
 		writeError(w, http.StatusTooManyRequests, "Too many requests")
-		h.logger().Warn("rate_limited", "site", site.Slug, "ip", middleware.ClientIP(r))
+		h.logger().Warn("rate_limited", "site", site.Slug, "ip_digest", h.ipDigestOrEmpty(r))
+		h.emit(r, site.Slug, "challenge", "limit", "rate_limited", "format1", "", -1)
 		return true
 	}
 	return false
 }
 
+func (h *Handler) ipDigestOrEmpty(r *http.Request) string {
+	if h.Events == nil {
+		return ""
+	}
+	return h.Events.IPDigest(h.clientIP(r))
+}
+
 // ---------------------------------------------------------------- challenge
 
 func (h *Handler) handleChallenge(w http.ResponseWriter, r *http.Request) {
+	start := h.now()
 	site, ok := h.resolveSite(w, r)
 	if !ok {
 		return
@@ -163,6 +209,7 @@ func (h *Handler) handleChallenge(w http.ResponseWriter, r *http.Request) {
 	h.Challenges.Put(token, format1.ChallengeData{Config: site.Challenge, Expires: expires})
 
 	h.logger().Info("challenge_issued", "site", site.Slug)
+	h.emit(r, site.Slug, "challenge", "pass", "", "format1", "", h.now()-start)
 	writeJSON(w, http.StatusOK, format1.ChallengeResponse{
 		Challenge: site.Challenge,
 		Token:     token,
@@ -218,6 +265,7 @@ func isDecimalInteger(s string) bool {
 }
 
 func (h *Handler) handleRedeem(w http.ResponseWriter, r *http.Request) {
+	start := h.now()
 	site, ok := h.resolveSite(w, r)
 	if !ok {
 		return
@@ -258,16 +306,19 @@ func (h *Handler) handleRedeem(w http.ResponseWriter, r *http.Request) {
 	data, found := h.Challenges.Consume(body.Token)
 	if !found || data.Expires < now {
 		h.logger().Info("redeem_fail", "site", site.Slug, "reason", "challenge_invalid_or_expired")
+		h.emit(r, site.Slug, "redeem", "fail", "challenge_invalid_or_expired", "format1", tokenID(body.Token), h.now()-start)
 		writeRedeemError(w, http.StatusForbidden, "Challenge invalid or expired")
 		return
 	}
 	if len(solutions) != data.Config.Count {
 		h.logger().Info("redeem_fail", "site", site.Slug, "reason", "invalid_solution")
+		h.emit(r, site.Slug, "redeem", "fail", "invalid_solution_count", "format1", tokenID(body.Token), h.now()-start)
 		writeRedeemError(w, http.StatusForbidden, "Invalid solution")
 		return
 	}
 	if err := format1.VerifySolutions(body.Token, data, solutions); err != nil {
 		h.logger().Info("redeem_fail", "site", site.Slug, "reason", "invalid_solution")
+		h.emit(r, site.Slug, "redeem", "fail", "invalid_solution", "format1", tokenID(body.Token), h.now()-start)
 		writeRedeemError(w, http.StatusForbidden, "Invalid solution")
 		return
 	}
@@ -282,6 +333,7 @@ func (h *Handler) handleRedeem(w http.ResponseWriter, r *http.Request) {
 	h.Tokens.Put(vt.Key, vt.Expires)
 
 	h.logger().Info("redeem_pass", "site", site.Slug)
+	h.emit(r, site.Slug, "redeem", "pass", "", "format1", tokenID(site.Slug+":"+vt.Token), h.now()-start)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"token":   site.Slug + ":" + vt.Token,
@@ -297,12 +349,13 @@ type siteVerifyBody struct {
 }
 
 // verifyAgainstSite 执行 secret 与通行 token 的一次性校验（capd siteverify 语义）。
-func (h *Handler) verifyAgainstSite(w http.ResponseWriter, r *http.Request, site *policy.Site, body siteVerifyBody) {
+func (h *Handler) verifyAgainstSite(w http.ResponseWriter, r *http.Request, site *policy.Site, body siteVerifyBody, start int64) {
 	// 常数时间比较：比较 sha256 摘要，避免长度/早退泄露。
 	want := sha256.Sum256([]byte(site.Secret))
 	got := sha256.Sum256([]byte(body.Secret))
 	if subtle.ConstantTimeCompare(want[:], got[:]) != 1 {
 		h.logger().Info("siteverify_fail", "site", site.Slug, "reason", "invalid_secret")
+		h.emit(r, site.Slug, "siteverify", "fail", "invalid_secret", "format1", tokenID(body.Response), h.now()-start)
 		writeSiteVerifyError(w, http.StatusForbidden, "Invalid site key or secret")
 		return
 	}
@@ -311,9 +364,11 @@ func (h *Handler) verifyAgainstSite(w http.ResponseWriter, r *http.Request, site
 	if err != nil {
 		// capd：parts 数量/空段非法 → 400；site 段与路径不匹配 → 404
 		if strings.Count(body.Response, ":") == 2 && site.Slug != "" {
+			h.emit(r, site.Slug, "siteverify", "fail", "site_mismatch", "format1", tokenID(body.Response), h.now()-start)
 			writeSiteVerifyError(w, http.StatusNotFound, "Invalid site key or secret")
 			return
 		}
+		h.emit(r, site.Slug, "siteverify", "fail", "malformed_token", "format1", "", h.now()-start)
 		writeSiteVerifyError(w, http.StatusBadRequest, "Missing required parameters")
 		return
 	}
@@ -321,17 +376,30 @@ func (h *Handler) verifyAgainstSite(w http.ResponseWriter, r *http.Request, site
 	switch h.Tokens.Consume(key, h.now()) {
 	case memory.TokenConsumed:
 		h.logger().Info("siteverify_pass", "site", site.Slug)
+		h.emit(r, site.Slug, "siteverify", "pass", "", "format1", tokenID(body.Response), h.now()-start)
 		writeJSON(w, http.StatusOK, map[string]any{"success": true})
 	case memory.TokenExpired:
 		h.logger().Info("siteverify_fail", "site", site.Slug, "reason", "token_expired")
+		h.emit(r, site.Slug, "siteverify", "fail", "token_expired", "format1", tokenID(body.Response), h.now()-start)
 		writeSiteVerifyError(w, http.StatusForbidden, "Token expired")
 	default: // TokenMissing：从未签发或已消费（重放）
 		h.logger().Info("siteverify_fail", "site", site.Slug, "reason", "token_not_found")
+		h.emit(r, site.Slug, "siteverify", "fail", "token_not_found", "format1", tokenID(body.Response), h.now()-start)
 		writeSiteVerifyError(w, http.StatusNotFound, "Token not found")
 	}
 }
 
+// tokenID 提取 "site:id:ver" / "id:ver" 形式的 id 段（审计不落完整 token）。
+func tokenID(token string) string {
+	parts := strings.Split(token, ":")
+	if len(parts) >= 2 {
+		return parts[len(parts)-2]
+	}
+	return ""
+}
+
 func (h *Handler) handleSiteVerify(w http.ResponseWriter, r *http.Request) {
+	start := h.now()
 	site, ok := h.resolveSite(w, r)
 	if !ok {
 		return
@@ -347,12 +415,13 @@ func (h *Handler) handleSiteVerify(w http.ResponseWriter, r *http.Request) {
 		writeSiteVerifyError(w, http.StatusBadRequest, "Missing required parameters")
 		return
 	}
-	h.verifyAgainstSite(w, r, site, body)
+	h.verifyAgainstSite(w, r, site, body, start)
 }
 
 // handleGlobalSiteVerify 是无路径站点版：通行 token 必须为三段式，
 // 站点从 token 第一段恢复（capd POST /siteverify 语义）。
 func (h *Handler) handleGlobalSiteVerify(w http.ResponseWriter, r *http.Request) {
+	start := h.now()
 	h.applyCORSNoSite(w, r)
 
 	var body siteVerifyBody
@@ -378,7 +447,7 @@ func (h *Handler) handleGlobalSiteVerify(w http.ResponseWriter, r *http.Request)
 		writeSiteVerifyError(w, http.StatusNotFound, "Invalid site key or secret")
 		return
 	}
-	h.verifyAgainstSite(w, r, site, body)
+	h.verifyAgainstSite(w, r, site, body, start)
 }
 
 // applyCORSNoSite：全局端点无法提前按站点取策略，放行但保持 Vary 语义。

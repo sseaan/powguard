@@ -4,21 +4,14 @@
 package middleware
 
 import (
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 )
-
-// ClientIP 提取客户端 IP（直连模式：仅 RemoteAddr）。
-func ClientIP(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
-}
 
 // Chain 从内到外包装：Chain(h, m1, m2) == m1(m2(h))。
 func Chain(h http.Handler, mws ...func(http.Handler) http.Handler) http.Handler {
@@ -92,4 +85,83 @@ func MaxBytes(n int64) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// IPExtractor 从请求提取客户端 IP：直连模式只信 RemoteAddr；
+// 配置可信 CIDR 后才读取 X-Forwarded-For（PLAN.md §6.3）。
+type IPExtractor struct {
+	Trusted []*net.IPNet
+}
+
+// NewIPExtractor 解析逗号分隔 CIDR（支持单个 IP）。
+func NewIPExtractor(cidrs string) (*IPExtractor, error) {
+	e := &IPExtractor{}
+	for _, c := range strings.Split(cidrs, ",") {
+		c = strings.TrimSpace(c)
+		if c == "" {
+			continue
+		}
+		if !strings.Contains(c, "/") {
+			c += "/32"
+		}
+		_, n, err := net.ParseCIDR(c)
+		if err != nil {
+			return nil, fmt.Errorf("middleware: 非法 CIDR %q: %w", c, err)
+		}
+		e.Trusted = append(e.Trusted, n)
+	}
+	return e, nil
+}
+
+func (e *IPExtractor) trusted(ip net.IP) bool {
+	for _, n := range e.Trusted {
+		if n.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// Client 返回真实客户端 IP：
+//   - RemoteAddr 不在可信网段 → 直连客户端，忽略 XFF；
+//   - RemoteAddr 可信 → 从 XFF 最右侧往左走，跳过可信代理，
+//     第一个不可信地址即客户端；全部可信则取最左。
+func (e *IPExtractor) Client(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	remote := net.ParseIP(host)
+	if remote == nil || !e.trusted(remote) {
+		return host
+	}
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff == "" {
+		return host
+	}
+	parts := strings.Split(xff, ",")
+	ips := make([]net.IP, 0, len(parts))
+	for _, p := range parts {
+		if ip := net.ParseIP(strings.TrimSpace(p)); ip != nil {
+			ips = append(ips, ip)
+		}
+	}
+	if len(ips) == 0 {
+		return host
+	}
+	for i := len(ips) - 1; i >= 0; i-- {
+		if !e.trusted(ips[i]) {
+			return ips[i].String()
+		}
+	}
+	return ips[0].String()
+}
+
+// ClientIP 保持直连语义（无反代配置时的默认行为）。
+func ClientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
