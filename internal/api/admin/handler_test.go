@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/sseaan/powguard/internal/api/middleware"
 	"github.com/sseaan/powguard/internal/api/public"
 	"github.com/sseaan/powguard/internal/policy"
 	"github.com/sseaan/powguard/internal/security/secretbox"
@@ -29,6 +30,26 @@ type adminEnv struct {
 	secrets  *sqlite.SecretRepo
 	box      *secretbox.Box
 	resolver *policy.DBResolver
+}
+
+func TestAdminClientIPUsesTrustedProxy(t *testing.T) {
+	e, err := middleware.NewIPExtractor("127.0.0.1/8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/admin/api/login", nil)
+	req.RemoteAddr = "127.0.0.1:4567"
+	req.Header.Set("X-Forwarded-For", "203.0.113.9")
+
+	trusted := &Handler{IPs: e}
+	if got := trusted.clientIP(req); got != "203.0.113.9" {
+		t.Fatalf("可信反代模式应取 XFF 客户端，得到 %q", got)
+	}
+
+	direct := &Handler{}
+	if got := direct.clientIP(req); got != "127.0.0.1" {
+		t.Fatalf("直连模式应忽略 XFF，得到 %q", got)
+	}
 }
 
 func newEnv(t *testing.T, mutate func(*Handler)) *adminEnv {

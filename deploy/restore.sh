@@ -27,13 +27,17 @@ fi
 echo "停止服务 $SERVICE …"
 systemctl stop "$SERVICE" || true
 
-# 3. 现有库保留为 .pre-restore（便于回滚）
+# 3. 现有库连同 WAL/SHM 保留为 .pre-restore（便于完整回滚）
+#    停服后 WAL 可能仍含已提交数据，只移动主库会丢掉这部分；
+#    三件套必须成组移动，回滚时也成组放回。
 if [[ -f "$DB_PATH" ]]; then
-  echo "保留当前库：${DB_PATH}.pre-restore"
+  echo "保留当前库：${DB_PATH}.pre-restore（含 WAL/SHM）"
   rm -f "${DB_PATH}.pre-restore" "${DB_PATH}.pre-restore-wal" "${DB_PATH}.pre-restore-shm"
   mv "$DB_PATH" "${DB_PATH}.pre-restore"
+  [[ -f "${DB_PATH}-wal" ]] && mv "${DB_PATH}-wal" "${DB_PATH}.pre-restore-wal"
+  [[ -f "${DB_PATH}-shm" ]] && mv "${DB_PATH}-shm" "${DB_PATH}.pre-restore-shm"
 fi
-# WAL/SHM 必须一并清理，否则旧 WAL 会污染新库
+# 新库不得继承旧 WAL/SHM（上面已移走；这里兜底清理）
 rm -f "${DB_PATH}-wal" "${DB_PATH}-shm"
 
 # 4. 原子放置备份

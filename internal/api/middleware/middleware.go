@@ -22,7 +22,12 @@ func Chain(h http.Handler, mws ...func(http.Handler) http.Handler) http.Handler 
 }
 
 // RequestLogger 注入 request id 并记录基础访问日志。
-func RequestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
+// 传入 IPExtractor 时按可信反代模式取真实客户端 IP；否则保持直连语义。
+func RequestLogger(logger *slog.Logger, extractors ...*IPExtractor) func(http.Handler) http.Handler {
+	var ips *IPExtractor
+	if len(extractors) > 0 {
+		ips = extractors[0]
+	}
 	var nextID atomic.Uint64
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,12 +36,16 @@ func RequestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(rec, r)
 			if logger != nil {
+				ip := ClientIP(r)
+				if ips != nil {
+					ip = ips.Client(r)
+				}
 				logger.Info("http",
 					"rid", id,
 					"method", r.Method,
 					"path", r.URL.Path,
 					"status", rec.status,
-					"ip", ClientIP(r),
+					"ip", ip,
 					"dur_ms", time.Since(start).Milliseconds(),
 				)
 			}

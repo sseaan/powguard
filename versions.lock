@@ -16,7 +16,8 @@
     "prng": "fnv1a+xorshift32 与 @cap.js/server@4.0.5 / capjs-core@0.1.18 双向 bit-exact",
     "format1": "fixture 对拍通过；真实 Chromium（widget 0.1.63 + 同源 wasm 0.0.8）完成挑战全链路",
     "format2_sha256": "fixture 对拍通过（见 testdata/format2）",
-    "widget_e2e": "已通过（Chromium，未修改 widget，CAP_CUSTOM_WASM_URL 同源加载）",
-    "twikoo_e2e": "调用形状已验证；真实实例验收留待部署（M5）"
+    "widget_e2e": "已通过（Chromium，未修改 widget，CAP_CUSTOM_WASM_URL 同源加载；深圳 HTTPS 环境复测 format-1/format-2）",
+    "twikoo_e2e": "已通过（深圳 cap.mvr.cc：Twikoo 2.0.17 外接 Cap 真实评论；无 token/跨站 token/重放均拒绝）",
+    "deployment": "2026-11-19 Aliyun 深圳，Rocky Linux 10.2，systemd + Caddy + Let's Encrypt，cap.mvr.cc；详见 docs/m5-acceptance.md"
   }
 }

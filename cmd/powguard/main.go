@@ -211,6 +211,7 @@ func main() {
 			Clock:        func() int64 { return time.Now().UnixMilli() },
 			Logger:       logger,
 			CookieSecure: cookieSecure,
+			IPs:          ips,
 		}
 		if err := adm.Register(mux); err != nil {
 			logger.Error("admin register failed", "err", err)
@@ -241,7 +242,7 @@ func main() {
 
 	root := middleware.Chain(mux,
 		middleware.Recover(logger),
-		middleware.RequestLogger(logger),
+		middleware.RequestLogger(logger, ips),
 	)
 
 	srv := &http.Server{

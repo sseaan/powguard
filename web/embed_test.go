@@ -54,12 +54,13 @@ func TestStaticAssets(t *testing.T) {
 		status      int
 		contentType string
 		cachePrefix string
+		cors        bool
 	}{
-		{"/static/app.css", 200, "text/css", "no-store"},
-		{"/static/app.js", 200, "javascript", "no-store"},
-		{"/static/vendor/cap.min.js", 200, "javascript", "public, max-age"},
-		{"/static/vendor/cap_wasm_bg.wasm", 200, "application/wasm", "public, max-age"},
-		{"/", 200, "text/html", "no-store"},
+		{"/static/app.css", 200, "text/css", "no-store", false},
+		{"/static/app.js", 200, "javascript", "no-store", false},
+		{"/static/vendor/cap.min.js", 200, "javascript", "public, max-age", true},
+		{"/static/vendor/cap_wasm_bg.wasm", 200, "application/wasm", "public, max-age", true},
+		{"/", 200, "text/html", "no-store", false},
 	}
 	for _, c := range cases {
 		resp, err := http.Get(srv.URL + c.path)
@@ -75,6 +76,14 @@ func TestStaticAssets(t *testing.T) {
 		}
 		if cc := resp.Header.Get("Cache-Control"); !strings.HasPrefix(cc, c.cachePrefix) {
 			t.Errorf("%s Cache-Control %q 应以 %q 开头", c.path, cc, c.cachePrefix)
+		}
+		if c.cors {
+			if acao := resp.Header.Get("Access-Control-Allow-Origin"); acao != "*" {
+				t.Errorf("%s Access-Control-Allow-Origin %q != *", c.path, acao)
+			}
+			if corp := resp.Header.Get("Cross-Origin-Resource-Policy"); corp != "cross-origin" {
+				t.Errorf("%s Cross-Origin-Resource-Policy %q != cross-origin", c.path, corp)
+			}
 		}
 	}
 }

@@ -55,6 +55,16 @@ type Handler struct {
 	Logger  *slog.Logger
 	// CookieSecure 在 HTTPS 反代后设 true。
 	CookieSecure bool
+	// IPs 为 nil 时用直连 RemoteAddr；配置可信网段后读 XFF（与公开 API 一致）。
+	IPs *middleware.IPExtractor
+}
+
+// clientIP 取客户端 IP（直连或可信反代模式）。
+func (h *Handler) clientIP(r *http.Request) string {
+	if h.IPs != nil {
+		return h.IPs.Client(r)
+	}
+	return middleware.ClientIP(r)
 }
 
 func (h *Handler) now() int64 {
@@ -155,7 +165,7 @@ func (h *Handler) requireSession(next func(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) rateLimited(w http.ResponseWriter, r *http.Request, key string, max int) bool {
-	if !h.Limiter.Allow(key+"|"+middleware.ClientIP(r), max, loginLimits.windowMs, h.now()) {
+	if !h.Limiter.Allow(key+"|"+h.clientIP(r), max, loginLimits.windowMs, h.now()) {
 		writeErr(w, http.StatusTooManyRequests, "Too many requests")
 		return true
 	}
@@ -176,7 +186,7 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.adminKeyMatch(body.Key) {
-		h.logger().Warn("admin_login_fail", "ip", middleware.ClientIP(r))
+		h.logger().Warn("admin_login_fail", "ip", h.clientIP(r))
 		writeErr(w, http.StatusUnauthorized, "Invalid admin key")
 		return
 	}

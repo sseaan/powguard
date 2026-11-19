@@ -79,6 +79,8 @@ curl -fsS http://127.0.0.1:3000/healthz    # {"status":"ok"}
 
 ```bash
 sudo install -m 0644 deploy/Caddyfile /etc/caddy/Caddyfile   # 先改域名
+# Caddy 日志目录：示例配置写入 /var/log/caddy/powguard.log，必须由 caddy 用户可写
+sudo install -d -o caddy -g caddy -m 0750 /var/log/caddy
 sudo systemctl reload caddy
 curl -I https://cap.example.com/healthz
 ```
@@ -87,7 +89,9 @@ curl -I https://cap.example.com/healthz
 
 - `X-Forwarded-For` 由 Caddy 重写，客户端伪造值被丢弃；
 - `/admin/api/events/stream` 关闭缓冲（`flush_interval -1`），否则 SSE 不实时；
-- 仅 443 对外，应用端口不暴露。
+- 仅 443 对外，应用端口不暴露；
+- `/static/vendor/` 由 powguard 自身返回 `Access-Control-Allow-Origin: *`，
+  供 Twikoo 等跨站页面加载 widget/WASM（避免依赖 jsdmirror/jsDelivr）。
 
 防火墙 / 安全组：
 
@@ -155,15 +159,20 @@ sudo BACKUP_DIR=/var/backups/powguard /path/to/deploy/backup.sh
 sudo MASTER_KEY='<master key>' ./deploy/restore.sh /var/backups/powguard/powguard-YYYYmmdd-HHMMSS.sqlite3
 ```
 
-脚本会：停服 → 校验 sha256 → 现有库改名 `.pre-restore` → 清理 `-wal/-shm` →
+脚本会：停服 → 校验 sha256 → 现有库连同 `-wal/-shm` 改名为 `.pre-restore*` →
 放置备份 → `powguard verify-keys` 校验密文可解 → 启动 → `/healthz` 检查。
+
+> 停服后 WAL 仍可能含已提交数据，回滚时必须把 `.pre-restore`、`.pre-restore-wal`、
+> `.pre-restore-shm` 三件套成组放回，不能只还原主库。
 
 手工等价命令：
 
 ```bash
 systemctl stop powguard
-cp /var/lib/powguard/powguard.sqlite3 /var/lib/powguard/powguard.sqlite3.bak
-rm -f /var/lib/powguard/powguard.sqlite3-wal /var/lib/powguard/powguard.sqlite3-shm
+# 保住旧库三件套；回滚时原样放回
+for f in /var/lib/powguard/powguard.sqlite3 /var/lib/powguard/powguard.sqlite3-wal /var/lib/powguard/powguard.sqlite3-shm; do
+  [ -f "$f" ] && mv "$f" "$f.pre-restore"
+done
 install -m 0600 -o powguard -g powguard <备份文件> /var/lib/powguard/powguard.sqlite3
 powguard verify-keys --db /var/lib/powguard/powguard.sqlite3 --master-key "$POWGUARD_MASTER_KEY"
 systemctl start powguard

@@ -150,10 +150,17 @@ func (a *Assets) guard(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // withCachePolicy：vendor 资产钉版本、内容寻址稳定 → 长缓存；其余不缓存。
+// vendor 资产（widget/WASM/CSS）需允许其他站点跨源加载：
+// Twikoo 外接模式会从博客域名引用 cap.mvr.cc 的 widget 与 WASM，
+// 缺少 CORS 头时 WebAssembly 的跨源 fetch 会被浏览器拒绝。
 func withCachePolicy(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/static/vendor/") && !strings.HasSuffix(r.URL.Path, ".md") {
-			w.Header().Set("Cache-Control", "public, max-age=86400")
+		if strings.HasPrefix(r.URL.Path, "/static/vendor/") {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
+			if !strings.HasSuffix(r.URL.Path, ".md") {
+				w.Header().Set("Cache-Control", "public, max-age=86400")
+			}
 		} else {
 			w.Header().Set("Cache-Control", "no-store")
 		}
