@@ -36,8 +36,8 @@
 
 | 项 | 状态 | 计划 |
 |---|---|---|
-| 未修改 widget 0.1.63 真实浏览器 e2e | 未开始 | M1 末（Chromium） |
-| Twikoo 2.0.17 外接模式端到端 | 未开始 | M1 末（本地起 twikoo server） |
+| 未修改 widget 0.1.63 真实浏览器 e2e | ✅ Chromium 实测通过（同源 WASM） | M1 已验：挑战→求解→redeem→siteverify→重放拒绝全链路 |
+| Twikoo 2.0.17 外接模式端到端 | ✅ 调用形状已验 | 实例化真实 Twikoo 部署留待 M5（服务端调用形状已在 `TestTwikooExactCallShape` 逐字段复刻） |
 | format-2 双向 + scope + 浏览器 | Go 侧已双向 | M3 收口（含 hashwx 拒绝语义） |
 | HashWX / RSW / instrumentation | 明确不实现 | 以后经 provider 接口另立项 |
 

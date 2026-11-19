@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>capgo · widget 0.1.63 实测页</title>
+<link rel="stylesheet" href="/static/vendor/cap.css">
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 4rem auto; padding: 0 1rem; color: #333; }
+  .meta { color: #888; font-size: .9em; }
+  #result { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; display: none; }
+  #result.ok { display: block; background: #e8f5e9; border: 1px solid #a5d6a7; }
+  #result.bad { display: block; background: #ffebee; border: 1px solid #ef9a9a; }
+  token { display: block; margin-top: .5rem; word-break: break-all; font-family: ui-monospace, monospace; font-size: .85em; }
+</style>
+</head>
+<body>
+<h1>capgo 验证演示</h1>
+<p class="meta">站点 slug：<code>{{.Slug}}</code> · widget <code>@cap.js/widget@0.1.63</code> · wasm <code>@cap.js/wasm@0.0.8</code>（同源加载）</p>
+
+<script>
+  // 关键：widget 默认从 jsDelivr 拉 WASM（大陆不可达），这里指向同源资产。
+  window.CAP_CUSTOM_WASM_URL = "/static/vendor/cap_wasm_bg.wasm";
+</script>
+<script src="/static/vendor/cap.min.js"></script>
+
+<cap-widget id="cw" data-cap-api-endpoint="/{{.Slug}}/"></cap-widget>
+
+<div id="result"></div>
+
+<script>
+  const cw = document.getElementById("cw");
+  const box = document.getElementById("result");
+  cw.addEventListener("solve", (e) => {
+    box.className = "ok";
+    box.innerHTML = "验证成功（token 见下，交给 Twikoo siteverify）：<token></token>";
+    box.querySelector("token").textContent = e.detail.token;
+  });
+  cw.addEventListener("error", (e) => {
+    if (!e.detail?.isCap) return;
+    box.className = "bad";
+    box.textContent = "验证失败：" + (e.detail.message || "unknown");
+  });
+</script>
+</body>
+</html>

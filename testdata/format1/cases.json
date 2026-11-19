@@ -1,6 +1,6 @@
 {
   "source": "@cap.js/server@4.0.5",
-  "generatedAt": 1795015441731,
+  "generatedAt": 1795053473525,
   "cases": [
     {
       "name": "default_lifecycle",
@@ -16,11 +16,11 @@
           "s": 32,
           "d": 4
         },
-        "token": "cbbf2c39a2e676279194fbffc5dd7720edead9d4d492d43619",
-        "expires": 1795016041734
+        "token": "6e65096338dcf59e363c3abde49124f3da40eb765ac61e657f",
+        "expires": 1795054073527
       },
       "challengeState": {
-        "expires": 1795016041734,
+        "expires": 1795054073527,
         "challenge": {
           "c": 50,
           "s": 32,
@@ -28,64 +28,64 @@
         }
       },
       "solutions": [
-        104662,
-        128653,
-        13657,
-        51335,
-        109570,
-        181932,
-        49786,
-        138968,
-        87876,
-        86041,
-        30082,
-        41382,
-        49230,
-        34023,
-        1956,
-        140848,
-        3069,
-        75550,
-        35942,
-        89246,
-        6425,
-        39414,
-        13175,
-        3110,
-        45354,
-        136140,
-        37789,
-        128072,
-        53478,
-        149998,
-        42207,
-        71679,
-        44988,
-        24701,
-        131061,
-        50063,
-        36873,
-        88990,
-        45985,
-        81351,
-        21767,
-        42724,
-        73749,
-        14356,
-        258560,
-        114206,
-        16018,
-        165154,
-        187009,
-        54322
+        57642,
+        117066,
+        56432,
+        16872,
+        5012,
+        3144,
+        172011,
+        329579,
+        10585,
+        7687,
+        119558,
+        15742,
+        20100,
+        78150,
+        52597,
+        2590,
+        177854,
+        23418,
+        252301,
+        92205,
+        20982,
+        131470,
+        41601,
+        27119,
+        82941,
+        58804,
+        58240,
+        25883,
+        106394,
+        28376,
+        62711,
+        77275,
+        136578,
+        2805,
+        19080,
+        40876,
+        132911,
+        123382,
+        59280,
+        38287,
+        85575,
+        7117,
+        51297,
+        22200,
+        24126,
+        9872,
+        87260,
+        173331,
+        154128,
+        5583
       ],
       "redeem": {
         "success": true,
-        "token": "d3a56d754940980e:98d793a4076b882b57dec4431a6c67",
-        "expires": 1795016642781
+        "token": "d08ce5db7e5e2976:a84834a009ff09fd7a7e0a00347935",
+        "expires": 1795054674525
       },
-      "tokenStateKey": "d3a56d754940980e:9e7df6ffa9f04507bd9dc876c36205ab769d5e9a8bf1ac321445ab6f9f1566d2",
-      "tokenStateExpires": 1795016642781,
+      "tokenStateKey": "d08ce5db7e5e2976:964471beabf572cd204e9513e2460ae2aaa3fe140b99d85b2587ec21ef49c15b",
+      "tokenStateExpires": 1795054674525,
       "firstValidate": {
         "success": true
       },
@@ -107,11 +107,11 @@
           "s": 16,
           "d": 3
         },
-        "token": "39b70ca058ec9ce32163d294c9b6bc1ad71a66ef5851464082",
-        "expires": 1795016042781
+        "token": "2e2855037f98e082d5fa2a5ebc8c8ed6c4f8ca31d48d603805",
+        "expires": 1795054074525
       },
       "challengeState": {
-        "expires": 1795016042781,
+        "expires": 1795054074525,
         "challenge": {
           "c": 2,
           "s": 16,
@@ -119,15 +119,15 @@
         }
       },
       "solutions": [
-        855,
-        15307
+        1172,
+        2727
       ],
       "redeem": {
         "success": true,
-        "token": "8ce5f0132c560196:ff3bd73215362284678c25bc80cb24",
-        "expires": 1795016642787
+        "token": "e39a73f7b587ab9e:9c4f5e7cbefa949d1031d188895a7e",
+        "expires": 1795054674529
       },
-      "tokenStateKey": "8ce5f0132c560196:a5475fa78225defec4521d7d8e846dfd3db10759a9a9a96a420765af93d93bc9",
+      "tokenStateKey": "e39a73f7b587ab9e:a953a2e2f1b5c6f42c95deafee00c14c4cc8fd6694e0f606d4ac1663d40c99d2",
       "firstValidate": {
         "success": true
       },
@@ -149,11 +149,11 @@
           "s": 16,
           "d": 3
         },
-        "token": "25487ef5e5b0f3631a39f477662242bf2c08d599e66e488d09",
-        "expires": 1795016042788
+        "token": "a1f8adffbe2425c8db335d17539ddb8de27a291dc8db254508",
+        "expires": 1795054074529
       },
       "challengeState": {
-        "expires": 1795016042788,
+        "expires": 1795054074529,
         "challenge": {
           "c": 1,
           "s": 16,
@@ -161,10 +161,10 @@
         }
       },
       "goodSolutions": [
-        2455
+        5417
       ],
       "wrongSolutions": [
-        2456
+        5418
       ],
       "redeemWrong": {
         "success": false,
@@ -189,11 +189,11 @@
           "s": 16,
           "d": 3
         },
-        "token": "fcdc8821c2924d525dd691e0192541bf780bdc9f18dba74d6f",
-        "expires": 1795015382788
+        "token": "dd4f18f24848f2ebe2da6f3510409d63a8cf7cff2105231221",
+        "expires": 1795053414530
       },
       "challengeState": {
-        "expires": 1795015382788,
+        "expires": 1795053414530,
         "challenge": {
           "c": 1,
           "s": 16,
@@ -201,7 +201,7 @@
         }
       },
       "solutions": [
-        765
+        1044
       ],
       "redeem": {
         "success": false,
@@ -239,17 +239,17 @@
           "s": 16,
           "d": 3
         },
-        "token": "99de1bf52a62a5af0a29e154461fe76cd73f95da56c0fa4d60",
-        "expires": 1795016042788
+        "token": "a64b12e50a8656a00747d8ba5ff7f9fb3fe2277a8678ebf1fa",
+        "expires": 1795054074530
       },
       "solutions": [
-        928
+        3270
       ],
-      "redeemToken": "c13547e569156985:99a6b4267d1eff770696f22c9d5cbf",
-      "idPart": "c13547e569156985",
-      "verPart": "99a6b4267d1eff770696f22c9d5cbf",
+      "redeemToken": "643085d7c2907958:77e695674aef3e4ab92f0e84fe509a",
+      "idPart": "643085d7c2907958",
+      "verPart": "77e695674aef3e4ab92f0e84fe509a",
       "verPartIsHex30": true,
-      "storedKeyDerived": "c13547e569156985:ca998bfca1156e1509198e7c7133c20dd2a11839002b8bba8c6df4e2c904d1b5",
+      "storedKeyDerived": "643085d7c2907958:e4d5f54038dc427987cacbd4ff0c4c0a3cda1f25015368941f12dc19074bb12b",
       "validateFresh": {
         "keep1": {
           "success": true

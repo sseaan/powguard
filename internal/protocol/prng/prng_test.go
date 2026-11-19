@@ -13,8 +13,8 @@ type vectorsFile struct {
 		SeedEncoding string `json:"seedEncoding"`
 	} `json:"source"`
 	Vectors []struct {
-		Seed    string           `json:"seed"`
-		Fnv1a   uint32           `json:"fnv1a"`
+		Seed    string            `json:"seed"`
+		Fnv1a   uint32            `json:"fnv1a"`
 		Outputs map[string]string `json:"outputs"`
 	} `json:"vectors"`
 	Resume []struct {

@@ -33,10 +33,11 @@ const (
 )
 
 // ChallengeConfig 是站点策略中的 format-1 参数。
+// 字段名即线协议字段（官方 challenge 响应 {c,s,d}）。
 type ChallengeConfig struct {
-	Count      int // c：挑战数量
-	Size       int // s：盐 hex 长度
-	Difficulty int // d：难度（hex 前缀位数）
+	Count      int `json:"c"` // c：挑战数量
+	Size       int `json:"s"` // s：盐 hex 长度
+	Difficulty int `json:"d"` // d：难度（hex 前缀位数）
 }
 
 func (c ChallengeConfig) Validate() error {

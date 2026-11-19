@@ -12,11 +12,11 @@
     "npm": "tools/oracle/package-lock.json"
   },
   "verified": {
-    "date": "2026-11-18",
+    "date": "2026-11-19",
     "prng": "fnv1a+xorshift32 与 @cap.js/server@4.0.5 / capjs-core@0.1.18 双向 bit-exact",
-    "format1": "fixture 对拍通过（见 testdata/format1）",
+    "format1": "fixture 对拍通过；真实 Chromium（widget 0.1.63 + 同源 wasm 0.0.8）完成挑战全链路",
     "format2_sha256": "fixture 对拍通过（见 testdata/format2）",
-    "widget_e2e": "待 M4（浏览器矩阵）",
-    "twikoo_e2e": "待 M5（部署验收）"
+    "widget_e2e": "已通过（Chromium，未修改 widget，CAP_CUSTOM_WASM_URL 同源加载）",
+    "twikoo_e2e": "调用形状已验证；真实实例验收留待部署（M5）"
   }
 }

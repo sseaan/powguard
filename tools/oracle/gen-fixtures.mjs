@@ -257,7 +257,7 @@ async function format2() {
       challengeCount: 3,
       challengeSize: 32,
       challengeDifficulty: 3,
-      expiresMs: 600000,
+      expiresMs: 365 * 24 * 60 * 60 * 1000,
       scope: "twikoo",
     };
     const ch = await generateChallenge(secret, opts);
@@ -304,7 +304,7 @@ async function format2() {
       challengeCount: 1,
       challengeSize: 16,
       challengeDifficulty: 3,
-      expiresMs: 600000,
+      expiresMs: 365 * 24 * 60 * 60 * 1000,
     };
     const ch = await generateChallenge(secret, opts);
     const good = solveFormat2(ch.challenges);
@@ -321,7 +321,7 @@ async function format2() {
       challengeCount: 2,
       challengeSize: 16,
       challengeDifficulty: 3,
-      expiresMs: 600000,
+      expiresMs: 365 * 24 * 60 * 60 * 1000,
     };
     const ch = await generateChallenge(secret, opts);
     const r1 = await validateChallenge(secret, { token: ch.token, solutions: [{ nonce: 1 }] });
@@ -347,7 +347,7 @@ async function format2() {
       challengeCount: 1,
       challengeSize: 16,
       challengeDifficulty: 3,
-      expiresMs: 600000,
+      expiresMs: 365 * 24 * 60 * 60 * 1000,
     };
     const ch = await generateChallenge(secret, opts);
     const solutions = solveFormat2(ch.challenges);
@@ -383,7 +383,7 @@ async function format2() {
       challengeCount: 1,
       challengeSize: 16,
       challengeDifficulty: 3,
-      expiresMs: 600000,
+      expiresMs: 365 * 24 * 60 * 60 * 1000,
     };
     const ch = await generateChallenge(secret, opts);
     const solutions = solveFormat2(ch.challenges);
