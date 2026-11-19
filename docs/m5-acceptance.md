@@ -4,8 +4,8 @@
 - 目标机：Aliyun 深圳，Rocky Linux 10.2（x86_64），单实例
 - 公网入口：`https://cap.mvr.cc`
 - 部署形态：`powguard` 静态二进制 + SQLite + systemd + Caddy（Let's Encrypt）
-- 部署产物：`powguard c3f14cb-m5 (go1.27.4 linux/amd64)`
-  - sha256：`7887d9cd5ab039390a7e26942e0c9d60b5f11d21274c51f9807e4c912d58e7fc`
+- 部署产物：`powguard 73e64db (go1.27.4 linux/amd64)`
+  - sha256：`a7d5c3c8030c38ea0a9afbe7e53b5729ce36216d8ac3fe1a4658ca4b530c2947`
 - 依赖版本：见 `versions.lock`（widget 0.1.63 / WASM 0.0.8 / Twikoo 2.0.17 / @cap.js/server 4.0.5 / capjs-core 0.1.18）
 
 ## 1. 部署状态
