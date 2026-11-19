@@ -127,7 +127,7 @@ func sub(t *testing.T, m map[string]any, key string) map[string]any {
 	return v
 }
 
-// TestOfficialLifecycle 官方签发的挑战由 Go 校验解（官方 → capgo 方向），
+// TestOfficialLifecycle 官方签发的挑战由 Go 校验解（官方 → powguard 方向），
 // 并验证 Go 推导的通行 token 存储键与官方存储键一致。
 func TestOfficialLifecycle(t *testing.T) {
 	f := loadCases(t)

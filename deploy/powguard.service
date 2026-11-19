@@ -1,6 +1,6 @@
 [Unit]
-Description=capgo — Cap PoW 人机验证服务
-Documentation=https://github.com/sseaan/capgo
+Description=powguard — Cap PoW 人机验证服务
+Documentation=https://github.com/sseaan/powguard
 After=network-online.target
 Wants=network-online.target
 # 单实例语义：同一数据目录只允许一个进程（challenge/token 在内存）
@@ -9,11 +9,11 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-User=capgo
-Group=capgo
-WorkingDirectory=/var/lib/capgo
-EnvironmentFile=/etc/capgo/capgo.env
-ExecStart=/usr/local/bin/capgo
+User=powguard
+Group=powguard
+WorkingDirectory=/var/lib/powguard
+EnvironmentFile=/etc/powguard/powguard.env
+ExecStart=/usr/local/bin/powguard
 Restart=on-failure
 RestartSec=3s
 TimeoutStopSec=20s
@@ -21,7 +21,7 @@ TimeoutStopSec=20s
 # 日志：JSON 行输出到 journald
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=capgo
+SyslogIdentifier=powguard
 
 # ---- 安全加固 ----
 NoNewPrivileges=yes
@@ -44,7 +44,7 @@ SystemCallFilter=@system-service
 SystemCallErrorNumber=EPERM
 
 # 唯一可写路径：SQLite 数据目录（WAL 需要写 -wal/-shm）
-ReadWritePaths=/var/lib/capgo
+ReadWritePaths=/var/lib/powguard
 UMask=0077
 LimitNOFILE=8192
 

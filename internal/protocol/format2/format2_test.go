@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"capgo/internal/protocol/sha256pow"
+	"github.com/sseaan/powguard/internal/protocol/sha256pow"
 )
 
 type caseEntry2 struct {
@@ -115,7 +115,7 @@ func reasonOf(m map[string]any) string {
 	return r
 }
 
-// TestOfficialLifecycle 官方 capjs-core 生成的 format-2 挑战由 Go 校验（官方 → capgo）。
+// TestOfficialLifecycle 官方 capjs-core 生成的 format-2 挑战由 Go 校验（官方 → powguard）。
 func TestOfficialLifecycle(t *testing.T) {
 	f := loadCases(t)
 	var c *caseEntry2
@@ -444,7 +444,7 @@ func solveInt(salt, target string) int64 {
 
 func runOracle(t *testing.T, node string, input any) (dir, stdout string) {
 	t.Helper()
-	tmp, err := os.MkdirTemp("", "capgo-interop-*")
+	tmp, err := os.MkdirTemp("", "powguard-interop-*")
 	if err != nil {
 		t.Fatal(err)
 	}

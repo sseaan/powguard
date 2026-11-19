@@ -2,9 +2,9 @@ package main
 
 // 运维子命令（同一二进制，PLAN.md §9/§10）：
 //
-//	capgo keyrotate   --db <path> --old-key <k> --new-key <k>
-//	capgo backup      --db <path> --out <file>
-//	capgo verify-keys --db <path> --master-key <k>
+//	powguard keyrotate   --db <path> --old-key <k> --new-key <k>
+//	powguard backup      --db <path> --out <file>
+//	powguard verify-keys --db <path> --master-key <k>
 //
 // 子命令只操作数据库文件，不启动 HTTP 服务；建议在停止服务后执行 keyrotate。
 import (
@@ -12,25 +12,25 @@ import (
 	"os"
 	"runtime"
 
-	"capgo/internal/security/secretbox"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 // version 由构建注入：-ldflags '-X main.version=<git describe>'
 var version = "dev"
 
 func usageOps() {
-	fmt.Fprint(os.Stderr, `capgo 运维子命令：
+	fmt.Fprint(os.Stderr, `powguard 运维子命令：
 
-  capgo keyrotate   --db <path> --old-key <hex|b64> --new-key <hex|b64>
+  powguard keyrotate   --db <path> --old-key <hex|b64> --new-key <hex|b64>
         用新 master key 重新加密全部站点密钥（单事务，失败整体回滚）。
-        完成后须同步更新环境变量 CAPGO_MASTER_KEY 并重启服务。
+        完成后须同步更新环境变量 POWGUARD_MASTER_KEY 并重启服务。
 
-  capgo backup      --db <path> --out <file>
+  powguard backup      --db <path> --out <file>
         生成一致性快照（VACUUM INTO，可在服务运行时执行）。
-        必须与 CAPGO_MASTER_KEY 分开存放并成对备份。
+        必须与 POWGUARD_MASTER_KEY 分开存放并成对备份。
 
-  capgo verify-keys --db <path> --master-key <hex|b64>
+  powguard verify-keys --db <path> --master-key <hex|b64>
         校验库中全部密文能否用给定 master key 解密（部署健康检查）。
 
 `)
@@ -46,7 +46,7 @@ func runOps(args []string) (handled bool, code int) {
 
 	switch cmd {
 	case "--version", "-version", "version":
-		fmt.Printf("capgo %s (%s %s/%s)\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("powguard %s (%s %s/%s)\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		return true, 0
 	case "--help", "-h", "help":
 		usageOps()
@@ -86,7 +86,7 @@ func runOps(args []string) (handled bool, code int) {
 			fmt.Fprintf(os.Stderr, "轮换后校验失败：%v\n", err)
 			return true, 1
 		}
-		fmt.Printf("轮换完成：%d 个站点、%d 条密文；请更新 CAPGO_MASTER_KEY 并重启服务\n", res.Sites, res.Secrets)
+		fmt.Printf("轮换完成：%d 个站点、%d 条密文；请更新 POWGUARD_MASTER_KEY 并重启服务\n", res.Sites, res.Secrets)
 		return true, 0
 
 	case "backup":
@@ -106,7 +106,7 @@ func runOps(args []string) (handled bool, code int) {
 			fmt.Fprintf(os.Stderr, "备份失败：%v\n", err)
 			return true, 1
 		}
-		fmt.Printf("备份完成：%s（请与 CAPGO_MASTER_KEY 一起异地保存）\n", out)
+		fmt.Printf("备份完成：%s（请与 POWGUARD_MASTER_KEY 一起异地保存）\n", out)
 		return true, 0
 
 	case "verify-keys":

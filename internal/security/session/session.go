@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 // DefaultTTL 是会话有效期（12 小时）。

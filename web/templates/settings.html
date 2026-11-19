@@ -16,9 +16,9 @@
   <div class="panel">
     <h3 style="margin-top:0">部署检查</h3>
     <ul class="muted" style="margin:0;padding-left:1.1rem">
-      <li><code>CAPGO_MASTER_KEY</code> 与 SQLite 必须成对备份</li>
-      <li>反代后设置 <code>CAPGO_TRUST_PROXY</code>，否则限流按反代 IP 计数</li>
-      <li>HTTPS 部署时 cookie 自动 Secure（由 <code>CAPGO_PUBLIC_URL</code> 判定）</li>
+      <li><code>POWGUARD_MASTER_KEY</code> 与 SQLite 必须成对备份</li>
+      <li>反代后设置 <code>POWGUARD_TRUST_PROXY</code>，否则限流按反代 IP 计数</li>
+      <li>HTTPS 部署时 cookie 自动 Secure（由 <code>POWGUARD_PUBLIC_URL</code> 判定）</li>
       <li>widget/WASM 为同源自托管，无 jsDelivr 依赖</li>
     </ul>
   </div>
@@ -54,7 +54,7 @@
       const total = (stats.daily || []).reduce((a, d) => a + d.count, 0);
       el("#i-events").textContent = `近 7 天 ${total} 条`;
     } catch {}
-    el("#i-retention").textContent = "默认 30 天（服务端 CAPGO 配置，到期自动清理）";
+    el("#i-retention").textContent = "默认 30 天（服务端 POWGUARD 配置，到期自动清理）";
   }
   load();
 </script>

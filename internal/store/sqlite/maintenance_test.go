@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"capgo/internal/security/secretbox"
-	"capgo/internal/store/model"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/store/model"
 )
 
 func newMasterBox(t *testing.T, fill byte) *secretbox.Box {
@@ -55,7 +55,7 @@ func TestBackupAndRestore(t *testing.T) {
 
 	// 备份到临时文件
 	dir := t.TempDir()
-	dst := filepath.Join(dir, "capgo-backup.sqlite3")
+	dst := filepath.Join(dir, "powguard-backup.sqlite3")
 	db := r2db(sites)
 	if err := Backup(db, dst); err != nil {
 		t.Fatalf("Backup：%v", err)

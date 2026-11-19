@@ -26,7 +26,7 @@ func Matches(salt, solution, target string) bool {
 }
 
 // MatchesBytes 是字节级前缀比较（capjs-core powMatchesPrefix 语义），
-// 支持 odd-length target（半字节对齐）。capgo 对外统一用 Matches，
+// 支持 odd-length target（半字节对齐）。powguard 对外统一用 Matches，
 // 此函数供 format-2 与官方字节级语义对拍。
 func MatchesBytes(salt, solution string, target string) bool {
 	hex := func(c byte) int {

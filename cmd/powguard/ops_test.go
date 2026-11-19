@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"capgo/internal/security/secretbox"
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 // 验证运维子命令参数解析与 key 解析（不含进程级 os.Exit 路径）。
@@ -45,7 +45,7 @@ func TestBoxFromKeyFormats(t *testing.T) {
 // TestOpsRoundTrip 在真实 DB 上跑备份 → 校验 → 轮换 的完整运维链路。
 func TestOpsRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	dbPath := filepath.Join(dir, "capgo.sqlite3")
+	dbPath := filepath.Join(dir, "powguard.sqlite3")
 	db, err := sqlite.Open(dbPath)
 	if err != nil {
 		t.Fatal(err)

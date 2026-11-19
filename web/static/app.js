@@ -1,7 +1,7 @@
-// capgo dashboard 共享 JS（原生 ES 模块，无框架）
+// powguard dashboard 共享 JS（原生 ES 模块，无框架）
 // 约定：所有写操作自动带 X-CSRF-Token（登录时下发，存 sessionStorage）。
 
-let csrfToken = sessionStorage.getItem("capgo.csrf") || "";
+let csrfToken = sessionStorage.getItem("powguard.csrf") || "";
 
 /** 页面启动时尝试恢复 CSRF（新标签页 sessionStorage 为空）。 */
 export async function ensureCSRF() {
@@ -12,8 +12,8 @@ export async function ensureCSRF() {
 
 export function setCSRF(token) {
   csrfToken = token || "";
-  if (token) sessionStorage.setItem("capgo.csrf", token);
-  else sessionStorage.removeItem("capgo.csrf");
+  if (token) sessionStorage.setItem("powguard.csrf", token);
+  else sessionStorage.removeItem("powguard.csrf");
 }
 
 export function getCSRF() {

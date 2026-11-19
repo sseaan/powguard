@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"capgo/internal/security/secretbox"
-	"capgo/internal/security/session"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/security/session"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 func newAssets(t *testing.T, adminEnabled bool) (*Assets, *sqlite.SessionRepo) {
@@ -149,7 +149,7 @@ func TestAdminGuards(t *testing.T) {
 		t.Fatal(err)
 	}
 	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/admin", nil)
-	req.AddCookie(&http.Cookie{Name: "capgo_admin", Value: tok})
+	req.AddCookie(&http.Cookie{Name: "powguard_admin", Value: tok})
 	plain := &http.Client{}
 	resp, err = plain.Do(req)
 	if err != nil {

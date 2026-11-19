@@ -1,24 +1,24 @@
-// capgo —— 单二进制 Cap PoW 人机验证服务。
+// powguard —— 单二进制 Cap PoW 人机验证服务。
 //
 // 环境变量：
 //
-//	CAPGO_ADDR            监听地址（默认 127.0.0.1:3000）
-//	CAPGO_DB_PATH         SQLite 路径（默认 ./capgo.sqlite3）
-//	CAPGO_MASTER_KEY      32 字节（hex 或 base64）。已有密文的库缺此 key 将拒绝启动；
+//	POWGUARD_ADDR            监听地址（默认 127.0.0.1:3000）
+//	POWGUARD_DB_PATH         SQLite 路径（默认 ./powguard.sqlite3）
+//	POWGUARD_MASTER_KEY      32 字节（hex 或 base64）。已有密文的库缺此 key 将拒绝启动；
 //	                      全新库可缺省（自动生成临时 key，重启后密钥不可用，仅限本机演示）
-//	CAPGO_ADMIN_KEY       管理面板登录密钥；缺省则管理面板整体禁用
-//	CAPGO_TRUST_PROXY     可信反代网段（逗号分隔 CIDR，如 127.0.0.1/8）；
+//	POWGUARD_ADMIN_KEY       管理面板登录密钥；缺省则管理面板整体禁用
+//	POWGUARD_TRUST_PROXY     可信反代网段（逗号分隔 CIDR，如 127.0.0.1/8）；
 //	                      配置后才读取 X-Forwarded-For（PLAN.md §6.3）
-//	CAPGO_PUBLIC_URL      公开 URL（https 时 cookie 自动 Secure；展示用）
+//	POWGUARD_PUBLIC_URL      公开 URL（https 时 cookie 自动 Secure；展示用）
 //
-// 首次启动（库中无站点）会用 CAPGO_SITE_SLUG / CAPGO_SITE_SECRET 引导首个站点；
+// 首次启动（库中无站点）会用 POWGUARD_SITE_SLUG / POWGUARD_SITE_SECRET 引导首个站点；
 // 此后站点以 SQLite 为准（管理面板维护）。
 //
 // 运维子命令：
 //
-//	capgo keyrotate   --db <path> --old-key <k> --new-key <k>   # master key 轮换
-//	capgo backup      --db <path> --out <file>                  # 一致性快照
-//	capgo verify-keys --db <path> --master-key <k>              # 密文可解性校验
+//	powguard keyrotate   --db <path> --old-key <k> --new-key <k>   # master key 轮换
+//	powguard backup      --db <path> --out <file>                  # 一致性快照
+//	powguard verify-keys --db <path> --master-key <k>              # 密文可解性校验
 package main
 
 import (
@@ -37,18 +37,18 @@ import (
 	"syscall"
 	"time"
 
-	"capgo/internal/api/admin"
-	"capgo/internal/api/middleware"
-	"capgo/internal/api/public"
-	"capgo/internal/events"
-	"capgo/internal/policy"
-	"capgo/internal/protocol/format1"
-	"capgo/internal/security/secretbox"
-	"capgo/internal/security/session"
-	"capgo/internal/store/memory"
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
-	"capgo/web"
+	"github.com/sseaan/powguard/internal/api/admin"
+	"github.com/sseaan/powguard/internal/api/middleware"
+	"github.com/sseaan/powguard/internal/api/public"
+	"github.com/sseaan/powguard/internal/events"
+	"github.com/sseaan/powguard/internal/policy"
+	"github.com/sseaan/powguard/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/security/session"
+	"github.com/sseaan/powguard/internal/store/memory"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
+	"github.com/sseaan/powguard/web"
 )
 
 func env(key, def string) string {
@@ -73,7 +73,7 @@ func parseMasterKey(s string) ([]byte, error) {
 	if raw, err := base64.RawURLEncoding.DecodeString(s); err == nil && len(raw) == 32 {
 		return raw, nil
 	}
-	return nil, fmt.Errorf("CAPGO_MASTER_KEY 必须是 32 字节（hex 或 base64）")
+	return nil, fmt.Errorf("POWGUARD_MASTER_KEY 必须是 32 字节（hex 或 base64）")
 }
 
 func main() {
@@ -85,9 +85,9 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	addr := env("CAPGO_ADDR", "127.0.0.1:3000")
-	dbPath := env("CAPGO_DB_PATH", "capgo.sqlite3")
-	publicURL := env("CAPGO_PUBLIC_URL", "")
+	addr := env("POWGUARD_ADDR", "127.0.0.1:3000")
+	dbPath := env("POWGUARD_DB_PATH", "powguard.sqlite3")
+	publicURL := env("POWGUARD_PUBLIC_URL", "")
 
 	db, err := sqlite.Open(dbPath)
 	if err != nil {
@@ -101,15 +101,15 @@ func main() {
 	settingsRepo := sqlite.NewSettingsRepo(db)
 
 	// ---- master key：已有密文则必须提供，且需能解开
-	masterRaw, err := parseMasterKey(os.Getenv("CAPGO_MASTER_KEY"))
+	masterRaw, err := parseMasterKey(os.Getenv("POWGUARD_MASTER_KEY"))
 	if err != nil {
-		logger.Error("invalid CAPGO_MASTER_KEY", "err", err)
+		logger.Error("invalid POWGUARD_MASTER_KEY", "err", err)
 		os.Exit(1)
 	}
 	ephemeralMaster := false
 	if masterRaw == nil {
 		if has, _ := secretRepo.HasAnySecrets(); has {
-			logger.Error("库中已有加密密钥但未提供 CAPGO_MASTER_KEY，拒绝启动（密文不可恢复，PLAN.md §6.2）")
+			logger.Error("库中已有加密密钥但未提供 POWGUARD_MASTER_KEY，拒绝启动（密文不可恢复，PLAN.md §6.2）")
 			os.Exit(1)
 		}
 		buf := make([]byte, 32)
@@ -119,7 +119,7 @@ func main() {
 		}
 		masterRaw = buf
 		ephemeralMaster = true
-		logger.Warn("CAPGO_MASTER_KEY 未设置：已生成临时 master key（重启后密文不可用，仅限本机演示；生产必须显式配置并独立备份）")
+		logger.Warn("POWGUARD_MASTER_KEY 未设置：已生成临时 master key（重启后密文不可用，仅限本机演示；生产必须显式配置并独立备份）")
 	}
 	box, err := secretbox.New(masterRaw)
 	if err != nil {
@@ -129,8 +129,8 @@ func main() {
 
 	// ---- 首站点 bootstrap（仅当库中无站点）
 	if n, _ := siteRepo.Count(); n == 0 {
-		slug := env("CAPGO_SITE_SLUG", "twikoo")
-		secret := os.Getenv("CAPGO_SITE_SECRET")
+		slug := env("POWGUARD_SITE_SLUG", "twikoo")
+		secret := os.Getenv("POWGUARD_SITE_SECRET")
 		ephemeralSiteSecret := false
 		if secret == "" {
 			buf := make([]byte, 24)
@@ -146,7 +146,7 @@ func main() {
 			os.Exit(1)
 		}
 		if ephemeralSiteSecret {
-			logger.Warn("CAPGO_SITE_SECRET 未设置，首站点已生成临时 secret（重启失效，仅供本机演示）")
+			logger.Warn("POWGUARD_SITE_SECRET 未设置，首站点已生成临时 secret（重启失效，仅供本机演示）")
 		}
 		logger.Info("bootstrapped first site", "slug", slug)
 	}
@@ -161,10 +161,10 @@ func main() {
 
 	// ---- IP 提取模式
 	var ips *middleware.IPExtractor
-	if cidrs := os.Getenv("CAPGO_TRUST_PROXY"); cidrs != "" {
+	if cidrs := os.Getenv("POWGUARD_TRUST_PROXY"); cidrs != "" {
 		e, err := middleware.NewIPExtractor(cidrs)
 		if err != nil {
-			logger.Error("invalid CAPGO_TRUST_PROXY", "err", err)
+			logger.Error("invalid POWGUARD_TRUST_PROXY", "err", err)
 			os.Exit(1)
 		}
 		ips = e
@@ -193,11 +193,11 @@ func main() {
 	})
 
 	cookieSecure := strings.HasPrefix(publicURL, "https://")
-	if v := os.Getenv("CAPGO_COOKIE_SECURE"); v != "" {
+	if v := os.Getenv("POWGUARD_COOKIE_SECURE"); v != "" {
 		cookieSecure, _ = strconv.ParseBool(v)
 	}
 	adminEnabled := false
-	if adminKey := os.Getenv("CAPGO_ADMIN_KEY"); adminKey != "" {
+	if adminKey := os.Getenv("POWGUARD_ADMIN_KEY"); adminKey != "" {
 		adminEnabled = true
 		adm := &admin.Handler{
 			AdminKey:     []byte(adminKey),
@@ -217,11 +217,11 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		logger.Warn("CAPGO_ADMIN_KEY 未设置：管理面板已禁用")
+		logger.Warn("POWGUARD_ADMIN_KEY 未设置：管理面板已禁用")
 	}
 
 	// 首站点 slug 供 demo 页使用
-	firstSlug := env("CAPGO_SITE_SLUG", "twikoo")
+	firstSlug := env("POWGUARD_SITE_SLUG", "twikoo")
 	if sites, err := siteRepo.List(); err == nil && len(sites) > 0 {
 		firstSlug = sites[0].Slug
 	}
@@ -281,7 +281,7 @@ func main() {
 	}()
 
 	go func() {
-		logger.Info("capgo listening", "addr", addr, "admin", adminEnabled,
+		logger.Info("powguard listening", "addr", addr, "admin", adminEnabled,
 			"db", dbPath, "ephemeral_master_key", ephemeralMaster)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("listen failed", "err", err)

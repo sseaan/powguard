@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 // handleEventStream 是 SSE 实时事件推送：每 interval 轮询增量事件，

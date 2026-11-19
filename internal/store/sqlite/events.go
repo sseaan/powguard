@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"capgo/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/model"
 )
 
 // EventRepo 写入/查询审计事件（白名单字段）。

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"capgo/internal/security/secretbox"
-	"capgo/internal/store/model"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/store/model"
 )
 
 // Backup 用 VACUUM INTO 生成一致性快照（WAL 下安全，不需要停止服务）。
@@ -48,8 +48,8 @@ type RotationResult struct {
 // 全程在单事务内完成：任一条失败则整体回滚，不会留下半新半旧的状态。
 //
 // 使用流程（部署文档 deploy/README.md）：
-//  1. capgo keyrotate --old ... --new ...（本函数）
-//  2. 更新 systemd EnvironmentFile 中的 CAPGO_MASTER_KEY
+//  1. powguard keyrotate --old ... --new ...（本函数）
+//  2. 更新 systemd EnvironmentFile 中的 POWGUARD_MASTER_KEY
 //  3. 重启服务
 //  4. 用新 key 验证 reveal 成功
 func RotateMasterKey(db *sql.DB, oldBox, newBox *secretbox.Box) (RotationResult, error) {

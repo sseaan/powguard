@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"capgo/internal/security/secretbox"
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 func newResolver(t *testing.T) (*DBResolver, *sqlite.SiteRepo, *sqlite.SecretRepo, *secretbox.Box) {

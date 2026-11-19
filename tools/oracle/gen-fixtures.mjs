@@ -1,5 +1,5 @@
 /**
- * gen-fixtures.mjs —— 从官方包生成 capgo 的兼容性 fixtures。
+ * gen-fixtures.mjs —— 从官方包生成 powguard 的兼容性 fixtures。
  *
  * 产物（写入 testdata/）：
  *   prng/vectors.json      PRNG golden vectors（@cap.js/server 与 capjs-core 双实现交叉断言）
@@ -246,7 +246,7 @@ await format1();
 
 // ------------------------------------------------------------- format-2 向量
 async function format2() {
-  const secret = "capgo-fixture-secret-32-bytes-min!!"; // ≥16 bytes
+  const secret = "powguard-fixture-secret-32-bytes-min!!"; // ≥16 bytes
   const cases = [];
 
   // sha256-pow 基本生命周期

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"capgo/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/model"
 )
 
 func TestSiteProtocolFormat2(t *testing.T) {

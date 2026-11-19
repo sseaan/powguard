@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"capgo/internal/security/secretbox"
-	"capgo/internal/security/session"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/security/session"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 //go:embed templates static
@@ -130,7 +130,7 @@ func (a *Assets) authed(r *http.Request) bool {
 	if a.Sessions == nil {
 		return false
 	}
-	c, err := r.Cookie("capgo_admin")
+	c, err := r.Cookie("powguard_admin")
 	if err != nil {
 		return false
 	}

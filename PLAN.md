@@ -1,4 +1,4 @@
-# capgo 实施计划
+# powguard 实施计划
 
 > 版本：v1.1
 > 状态：方向已确认，按“必要协议 + 实用扩展”实施
@@ -6,14 +6,14 @@
 
 ## 1. 项目定位
 
-`capgo` 是一个使用 Go 编写的、可独立部署的 Cap 工作量证明（PoW）人机验证服务。它参考官方 [tiagozip/cap](https://github.com/tiagozip/cap) / `capd` 的协议、管理模型和 WebUI 信息架构，但不复制整个官方 dashboard。
+`powguard` 是一个使用 Go 编写的、可独立部署的 Cap 工作量证明（PoW）人机验证服务。它参考官方 [tiagozip/cap](https://github.com/tiagozip/cap) / `capd` 的协议、管理模型和 WebUI 信息架构，但不复制整个官方 dashboard。
 
 目标部署形态：
 
 ```text
 Caddy / Nginx
       ↓
-capgo 单个静态二进制
+powguard 单个静态二进制
       ├── SQLite：站点、密钥、会话、事件
       └── 内存：短期 challenge / verification token
 ```
@@ -31,7 +31,7 @@ capgo 单个静态二进制
 - **协议实现：自行实现**。官方 `@cap.js/server`、`capjs-core` 和 `capd` 只作为规范、测试 oracle 和互操作对象，不作为运行时服务端依赖。
 - **部署边界：单实例优先**。v1 不依赖 Docker、Node、Redis 或 Valkey；不承诺多副本 HA。
 - **持久化：** SQLite 保存长期数据；challenge、verification token 和短期限流状态留在进程内存中，并通过锁保证一次性消费的原子性。
-- **密钥：** 站点 secret 可以在 WebUI 中恢复展示，使用独立的 `CAPGO_MASTER_KEY` 加密后存入 SQLite。
+- **密钥：** 站点 secret 可以在 WebUI 中恢复展示，使用独立的 `POWGUARD_MASTER_KEY` 加密后存入 SQLite。
 - **版本策略：** 所有官方 widget、WASM、协议 oracle 和测试依赖必须固定版本，不使用 `latest`。
 
 ### 2.1 协议范围与后续扩展
@@ -62,7 +62,7 @@ capgo 单个静态二进制
 |---|---:|---|
 | `@cap.js/widget` | 0.1.63 | 使用未修改的 widget 完成 challenge → solve → redeem |
 | `@cap.js/wasm` | 0.0.8 | 本地同源加载，不能依赖 jsDelivr |
-| `@cap.js/server` | 4.0.5 | format-1 双向互操作；官方生成的 challenge 能由 capgo redeem，反之亦然 |
+| `@cap.js/server` | 4.0.5 | format-1 双向互操作；官方生成的 challenge 能由 powguard redeem，反之亦然 |
 | `capjs-core` | 0.1.18 | 仅使用 format-2 SHA-256 和 scope 作为互操作 oracle；HashWX/RSW/instrumentation 不在当前版本目标内 |
 | capd | 4.0.15 作为参考基线 | 对照其 endpoint、site key、secret、策略和错误语义；不承诺 dashboard/API 全量兼容 |
 | Twikoo | 2.0.17 | 外接模式可用：`CAPTCHA_PROVIDER=Cap`、`CAP_API_ENDPOINT`、`CAP_SECRET_KEY` |
@@ -111,7 +111,7 @@ Content-Type: application/json
 ## 4. 总体架构
 
 ```text
-cmd/capgo/
+cmd/powguard/
   └── 进程启动、配置、信号处理、HTTP server
 
 internal/protocol/
@@ -155,7 +155,7 @@ testdata/
 
 ### 4.1 运行时依赖原则
 
-- 运行时只需要 capgo 二进制和 SQLite 文件；
+- 运行时只需要 powguard 二进制和 SQLite 文件；
 - SQLite 使用纯 Go 驱动（`modernc.org/sqlite`），保持 `CGO_ENABLED=0` 可构建；
 - Node/Bun 只允许出现在开发、oracle、fixture 生成和可选构建工具中；
 - 不把官方 JS 服务端包动态下载或执行在生产请求路径；
@@ -188,7 +188,7 @@ testdata/
 - public API、CORS、错误响应；
 - Twikoo 2.0.17 外接模式验收。
 
-**出口条件：** 未修改的 widget 0.1.63 能通过 capgo 完成验证；无 token 的直接评论请求被 Twikoo 拒绝；重放 token 失败。
+**出口条件：** 未修改的 widget 0.1.63 能通过 powguard 完成验证；无 token 的直接评论请求被 Twikoo 拒绝；重放 token 失败。
 
 ### 阶段 P2：format-2 SHA-256 扩展
 
@@ -227,8 +227,8 @@ challenge 和 verification token 不写 SQLite，原因是它们的生命周期�
 
 ### 6.2 密钥体系
 
-- `CAPGO_ADMIN_KEY`：仅用于登录管理面板，不写数据库；要求使用高熵随机值；
-- `CAPGO_MASTER_KEY`：独立的 32 字节密钥，使用 AES-256-GCM 加密站点 secret 和 format-2 内部签名密钥；
+- `POWGUARD_ADMIN_KEY`：仅用于登录管理面板，不写数据库；要求使用高熵随机值；
+- `POWGUARD_MASTER_KEY`：独立的 32 字节密钥，使用 AES-256-GCM 加密站点 secret 和 format-2 内部签名密钥；
 - 每条密文使用随机 nonce，并将站点 slug、字段名和 schema 版本作为 AEAD additional data；
 - WebUI 只在已认证会话中显示 secret；高风险的 reveal/rotate 操作需要再次输入 admin key 或二次确认；
 - 支持 secret rotate 和 master key re-encrypt；master key 丢失时无法恢复密文，部署文档必须要求独立备份；
@@ -282,7 +282,7 @@ challenge 和 verification token 不写 SQLite，原因是它们的生命周期�
 ## 8. 静态资源与大陆访问
 
 - vendor 固定版本的 `@cap.js/widget@0.1.63` 和 `@cap.js/wasm@0.0.8`；
-- 通过 `go:embed` 从 capgo 同源提供 widget/WASM；
+- 通过 `go:embed` 从 powguard 同源提供 widget/WASM；
 - 在集成页面生成 `CAP_CUSTOM_WASM_URL` 示例，避免浏览器访问 jsDelivr；
 - 检查正确的 MIME type、缓存头、`Cache-Control` 和跨域头；
 - 生产构建不得从网络下载 `latest` 资源；
@@ -293,14 +293,14 @@ challenge 和 verification token 不写 SQLite，原因是它们的生命周期�
 ### 协议测试
 
 - PRNG golden vectors：官方 Node 包、独立实现和 cap-php/其他独立实现交叉验证；
-- format-1：官方 server → capgo、capgo → 官方 server；
-- format-2 SHA-256：capjs-core → capgo、capgo → capjs-core；
+- format-1：官方 server → powguard、powguard → 官方 server；
+- format-2 SHA-256：capjs-core → powguard、powguard → capjs-core；
 - scope、站点隔离、错误 solution、缺字段、过期和重放；
 - JSON 字段、数值范围、错误 status/body 和查询参数兼容测试。
 
 ### 浏览器测试
 
-固定 widget/WASM，从 capgo 本地静态资源加载：
+固定 widget/WASM，从 powguard 本地静态资源加载：
 
 - Chromium 正常浏览器完成 format-1 和 format-2 SHA-256 验证；
 - widget 加载失败、WASM 加载失败、网络超时和重试；
@@ -326,25 +326,25 @@ challenge 和 verification token 不写 SQLite，原因是它们的生命周期�
 目标机器：Aliyun Shenzhen，Rocky Linux 10，单实例。
 
 1. 编译 `CGO_ENABLED=0 GOOS=linux GOARCH=amd64` 静态二进制；
-2. 创建专用低权限用户和 `/var/lib/capgo` 数据目录；
+2. 创建专用低权限用户和 `/var/lib/powguard` 数据目录；
 3. 使用 systemd 管理服务，监听 `127.0.0.1`，不直接暴露管理端口；
 4. 使用现有 Caddy 反向代理到 HTTPS 域名，例如 `cap.mvr.cc`；
 5. Caddy 只转发公开 API 和 WebUI，正确传递真实 IP 和 SSE；
 6. Aliyun 安全组只开放 80/443，应用端口不对公网开放；
-7. 独立备份 SQLite 数据库和 `CAPGO_MASTER_KEY`，两者不能只备份其中一个；
+7. 独立备份 SQLite 数据库和 `POWGUARD_MASTER_KEY`，两者不能只备份其中一个；
 8. 升级采用“构建新二进制 → 停止旧服务 → 数据库迁移 → 启动 → 健康检查 → 回滚”的流程；
 9. 部署文档提供 Homepage/Twikoo 配置示例，但不把真实 secret 写入仓库。
 
 ### 运行配置（计划）
 
 ```text
-CAPGO_ADDR=127.0.0.1:3000
-CAPGO_PUBLIC_URL=https://cap.example.com
-CAPGO_DB_PATH=/var/lib/capgo/capgo.sqlite3
-CAPGO_ADMIN_KEY=<high-entropy-admin-key>
-CAPGO_MASTER_KEY=<32-byte-base64-or-hex-key>
-CAPGO_TRUST_PROXY=<trusted-caddy-network>
-CAPGO_LOG_LEVEL=info
+POWGUARD_ADDR=127.0.0.1:3000
+POWGUARD_PUBLIC_URL=https://cap.example.com
+POWGUARD_DB_PATH=/var/lib/powguard/powguard.sqlite3
+POWGUARD_ADMIN_KEY=<high-entropy-admin-key>
+POWGUARD_MASTER_KEY=<32-byte-base64-or-hex-key>
+POWGUARD_TRUST_PROXY=<trusted-caddy-network>
+POWGUARD_LOG_LEVEL=info
 ```
 
 ## 11. 里程碑与交付物
@@ -386,7 +386,7 @@ CAPGO_LOG_LEVEL=info
 
 项目可以称为“可用 beta”，需要同时满足：
 
-- Homepage/Twikoo 使用外接 capgo 成功发表评论；
+- Homepage/Twikoo 使用外接 powguard 成功发表评论；
 - 官方 widget 通过本地 widget/WASM 资源完成验证；
 - siteverify 正确拒绝错误 secret、错误站点、过期 token 和重放 token；
 - admin key、master key、session、CSRF 和 CORS 通过测试；

@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 // Sink 缓冲异步事件写入器。

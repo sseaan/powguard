@@ -5,7 +5,7 @@ package memory
 import (
 	"sync"
 
-	"capgo/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/protocol/format1"
 )
 
 // ChallengeStore 是 format-1 挑战状态存储（等价官方 challengesList）。

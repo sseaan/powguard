@@ -20,13 +20,13 @@ import (
 	"strings"
 	"time"
 
-	"capgo/internal/api/middleware"
-	"capgo/internal/events"
-	"capgo/internal/policy"
-	"capgo/internal/protocol/format1"
-	"capgo/internal/protocol/format2"
-	"capgo/internal/store/memory"
-	"capgo/internal/store/model"
+	"github.com/sseaan/powguard/internal/api/middleware"
+	"github.com/sseaan/powguard/internal/events"
+	"github.com/sseaan/powguard/internal/policy"
+	"github.com/sseaan/powguard/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/protocol/format2"
+	"github.com/sseaan/powguard/internal/store/memory"
+	"github.com/sseaan/powguard/internal/store/model"
 )
 
 // 挑战/兑换请求体上限（capd redeem 语义：256 KiB）。
@@ -261,7 +261,7 @@ type redeemBody struct {
 }
 
 // integerSolutions 把 solutions 规范化为十进制整数字符串。
-// 已知偏差：官方接受任意 JS number（含浮点/指数）；capgo 拒绝非整数语法
+// 已知偏差：官方接受任意 JS number（含浮点/指数）；powguard 拒绝非整数语法
 // （docs/protocol-notes.md §9.1）。
 func integerSolutions(raw []json.RawMessage) ([]string, bool) {
 	out := make([]string, len(raw))

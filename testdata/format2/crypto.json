@@ -30,7 +30,7 @@
   },
   "gcm": {
     "info": "cap:fmt2-v1",
-    "secret": "capgo-fixture-secret-32-bytes-min!!",
+    "secret": "powguard-fixture-secret-32-bytes-min!!",
     "data": {
       "expected": [
         {
@@ -40,7 +40,7 @@
         }
       ]
     },
-    "blobFromCore": "okQJqM1cB2SvKyu2ceE5fNBtF1UTWzY2wHu7CkX7D22e1v9KwQA3jn2-1BstJRSdTw1XGGEA8wbc1DVAafaT-z2v6xE0hWOVUjPuCHauX8yn47S7gfnU5CchbysjI1hLCBlmaS8",
+    "blobFromCore": "7DpfMh4XEaqeYoCXO-PP0bF2t-2IDPFIrtdp9TfXUh_lsrGAtJvzwzEChZlKheQ95i38NeXeBsFprj2njFksic724WGIAPCsyB4Y5NcmitlcOcFgeEV1nxJuLoL7ccl5-BCtMGk",
     "roundtrip": {
       "a": 1,
       "list": [

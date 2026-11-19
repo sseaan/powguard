@@ -4,12 +4,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"capgo/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/model"
 )
 
 func openTestDB(t *testing.T) (*SiteRepo, *SecretRepo, *SessionRepo, *EventRepo, *SettingsRepo, func()) {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "capgo-test.sqlite3")
+	path := filepath.Join(t.TempDir(), "powguard-test.sqlite3")
 	db, err := Open(path)
 	if err != nil {
 		t.Fatalf("open: %v", err)

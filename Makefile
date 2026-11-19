@@ -1,7 +1,7 @@
 .PHONY: all build test race vet fmt lint clean linux release check
 
 GO      ?= go
-BIN     ?= capgo
+BIN     ?= powguard
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS ?= -s -w -X main.version=$(VERSION)
 
@@ -9,20 +9,20 @@ all: build
 
 ## 本机构建
 build:
-	$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/capgo
+	$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/powguard
 	$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o capsolve ./tools/capsolve
 
 ## 生产构建：静态、无 CGO、Linux amd64（PLAN.md §10）
 linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-		$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o dist/capgo-linux-amd64 ./cmd/capgo
+		$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o dist/powguard-linux-amd64 ./cmd/powguard
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 		$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o dist/capsolve-linux-amd64 ./tools/capsolve
-	@file dist/capgo-linux-amd64
-	@sha256sum dist/capgo-linux-amd64 | tee dist/capgo-linux-amd64.sha256
+	@file dist/powguard-linux-amd64
+	@sha256sum dist/powguard-linux-amd64 | tee dist/powguard-linux-amd64.sha256
 
 release: linux
-	@echo "产物：dist/capgo-linux-amd64（静态二进制，可直接 scp 到服务器）"
+	@echo "产物：dist/powguard-linux-amd64（静态二进制，可直接 scp 到服务器）"
 
 test:
 	$(GO) test ./... -count=1

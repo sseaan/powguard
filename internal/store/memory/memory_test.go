@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"capgo/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/protocol/format1"
 )
 
 func TestDataChallengeOneShot(t *testing.T) {

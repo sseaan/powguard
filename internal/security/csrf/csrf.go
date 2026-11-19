@@ -15,7 +15,7 @@ import (
 // Token 生成绑定到会话哈希的 CSRF token（hex）。
 func Token(csrfKey []byte, sessionTokenHash string) string {
 	m := hmac.New(sha256.New, csrfKey)
-	m.Write([]byte("capgo:csrf:v1|"))
+	m.Write([]byte("powguard:csrf:v1|"))
 	m.Write([]byte(sessionTokenHash))
 	return hex.EncodeToString(m.Sum(nil))
 }

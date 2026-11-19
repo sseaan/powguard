@@ -1,8 +1,8 @@
-# capgo 生产部署示例（Caddy 反代 + HTTPS）
+# powguard 生产部署示例（Caddy 反代 + HTTPS）
 #
 # 关键点：
 #   1. 反代到 127.0.0.1，只暴露 443；
-#   2. 显式传递真实客户端 IP（配合 CAPGO_TRUST_PROXY=127.0.0.1/8），
+#   2. 显式传递真实客户端 IP（配合 POWGUARD_TRUST_PROXY=127.0.0.1/8），
 #      否则限流会按 Caddy 的地址计数，所有访客共用一个桶；
 #   3. SSE（/admin/api/events/stream）不能被缓冲，需关掉 flush 延迟。
 
@@ -39,7 +39,7 @@ cap.example.com {
 	}
 
 	log {
-		output file /var/log/caddy/capgo.log {
+		output file /var/log/caddy/powguard.log {
 			roll_size 20mb
 			roll_keep 5
 		}

@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"capgo/internal/protocol/prng"
-	"capgo/internal/protocol/sha256pow"
+	"github.com/sseaan/powguard/internal/protocol/prng"
+	"github.com/sseaan/powguard/internal/protocol/sha256pow"
 )
 
 // 参数边界沿用 capjs-core 0.1.18 的校验（防 DoS，见 docs/protocol-notes.md §3.1）。
@@ -126,7 +126,7 @@ func NewVerificationToken(nowMs, ttlMs int64) (VerificationToken, error) {
 }
 
 // SplitVerificationToken 解析通行 token 为存储键；格式非法返回错误。
-// 同时接受 legacy 两段式（capgo / @cap.js/server）与 capd 三段式
+// 同时接受 legacy 两段式（powguard / @cap.js/server）与 capd 三段式
 // （"siteKey:id:vertoken"，siteKey 必须与 expectedSite 匹配）。
 func SplitVerificationToken(token, expectedSite string) (key string, err error) {
 	parts := strings.Split(token, ":")

@@ -1,4 +1,4 @@
-# capgo
+# powguard
 
 Cap 工作量证明（PoW）人机验证服务端的 Go 实现：与官方 `@cap.js/widget` 线协议兼容，自带轻量 WebUI，单二进制直接部署。
 
@@ -31,7 +31,7 @@ siteverify ← { secret, response } → { success }   // 常数时间比较 secr
 - [x] PRNG 对拍向量（oracle：官方包双实现交叉断言，`tools/oracle`）
 - [x] 协议核心（challenge / redeem / validate，内存存储 + 原子一次性消费）
 - [x] HTTP 面（CORS、`?wasm=0` 容忍、每 IP 限流、站点路由）
-- [x] SQLite 层（sites / site_secrets / admin_sessions / events / settings；secret 以 `CAPGO_MASTER_KEY` AES-256-GCM 加密 + AAD 绑定）
+- [x] SQLite 层（sites / site_secrets / admin_sessions / events / settings；secret 以 `POWGUARD_MASTER_KEY` AES-256-GCM 加密 + AAD 绑定）
 - [x] 管理 API（admin key 登录、会话 cookie、CSRF、站点 CRUD、reveal/rotate 再认证、事件/统计查询）
 - [x] capsolve CLI（测试与压测工具）
 - [x] 真实浏览器 e2e（未修改 widget 0.1.63 + 同源 WASM，format-1 与 format-2 双格式）

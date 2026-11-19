@@ -1,6 +1,6 @@
 // Package admin 是管理面板 JSON API（M2 骨干，M4 WebUI 消费同一批端点）。
 //
-// 认证：CAPGO_ADMIN_KEY 登录 → 不透明 session token（HttpOnly/SameSite=Lax
+// 认证：POWGUARD_ADMIN_KEY 登录 → 不透明 session token（HttpOnly/SameSite=Lax
 // cookie）→ 修改操作带 X-CSRF-Token（HMAC 绑定会话哈希）。
 // 高危操作（reveal/rotate）要求 body 再次携带 admin key。
 package admin
@@ -15,18 +15,18 @@ import (
 	"strconv"
 	"time"
 
-	"capgo/internal/api/middleware"
-	"capgo/internal/policy"
-	"capgo/internal/protocol/format1"
-	"capgo/internal/security/csrf"
-	"capgo/internal/security/session"
-	"capgo/internal/store/memory"
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/api/middleware"
+	"github.com/sseaan/powguard/internal/policy"
+	"github.com/sseaan/powguard/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/security/csrf"
+	"github.com/sseaan/powguard/internal/security/session"
+	"github.com/sseaan/powguard/internal/store/memory"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 // CookieName 是管理会话 cookie 名。
-const CookieName = "capgo_admin"
+const CookieName = "powguard_admin"
 
 // loginLimit 是登录尝试限流：每 IP 每 60 秒 5 次（PLAN.md §6.3）。
 var loginLimits = struct {

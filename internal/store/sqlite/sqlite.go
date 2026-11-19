@@ -1,4 +1,4 @@
-// Package sqlite 是 capgo 的持久层（modernc.org/sqlite 纯 Go 驱动，CGO-free）。
+// Package sqlite 是 powguard 的持久层（modernc.org/sqlite 纯 Go 驱动，CGO-free）。
 package sqlite
 
 import (

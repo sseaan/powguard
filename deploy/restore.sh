@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# capgo 恢复：把备份快照部署回数据目录
+# powguard 恢复：把备份快照部署回数据目录
 #
 # 用法：
-#   sudo MASTER_KEY=<key> ./deploy/restore.sh /var/backups/capgo/capgo-20260101-030000.sqlite3
+#   sudo MASTER_KEY=<key> ./deploy/restore.sh /var/backups/powguard/powguard-20260101-030000.sqlite3
 #
 # 步骤：停服 → 校验备份完整性 → 原子替换（含 WAL/SHM 清理）→ 校验密文可解 → 启动
 set -euo pipefail
 
 BACKUP_FILE="${1:-}"
-DB_PATH="${CAPGO_DB_PATH:-/var/lib/capgo/capgo.sqlite3}"
+DB_PATH="${POWGUARD_DB_PATH:-/var/lib/powguard/powguard.sqlite3}"
 MASTER_KEY="${MASTER_KEY:-}"
-CAPGO_BIN="${CAPGO_BIN:-/usr/local/bin/capgo}"
-SERVICE="${SERVICE:-capgo}"
+POWGUARD_BIN="${POWGUARD_BIN:-/usr/local/bin/powguard}"
+SERVICE="${SERVICE:-powguard}"
 
 if [[ -z "$BACKUP_FILE" || ! -f "$BACKUP_FILE" ]]; then
   echo "用法：MASTER_KEY=<key> $0 <备份文件>" >&2
@@ -37,12 +37,12 @@ fi
 rm -f "${DB_PATH}-wal" "${DB_PATH}-shm"
 
 # 4. 原子放置备份
-install -m 0600 -o capgo -g capgo "$BACKUP_FILE" "$DB_PATH"
+install -m 0600 -o powguard -g powguard "$BACKUP_FILE" "$DB_PATH"
 
 # 5. 校验密文可用给定 master key 解密（防止恢复后站点密钥全废）
 if [[ -n "$MASTER_KEY" ]]; then
   echo "校验 master key …"
-  if ! "$CAPGO_BIN" verify-keys --db "$DB_PATH" --master-key "$MASTER_KEY"; then
+  if ! "$POWGUARD_BIN" verify-keys --db "$DB_PATH" --master-key "$MASTER_KEY"; then
     echo "错误：备份与 master key 不匹配，已停在停止状态以便排查。" >&2
     exit 1
   fi

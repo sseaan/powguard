@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"capgo/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/protocol/format1"
 )
 
 // SlugRe 是站点 slug 的合法形态（PLAN.md §3.2：小写字母/数字/-/_，1–32）。

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 func newSink(t *testing.T) (*Sink, *sqlite.EventRepo) {

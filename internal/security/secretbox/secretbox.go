@@ -1,7 +1,7 @@
-// Package secretbox 用 CAPGO_MASTER_KEY 派生的 AES-256-GCM 加密站点 secret。
+// Package secretbox 用 POWGUARD_MASTER_KEY 派生的 AES-256-GCM 加密站点 secret。
 //
 // 密文布局与 capjs-core 的 GCM blob 一致：base64url(nonce[12] ‖ tag[16] ‖ ct)。
-// 每条密文绑定 AAD = "capgo:secret:v1|" + siteSlug + "|" + field + "|" + schemaVersion，
+// 每条密文绑定 AAD = "powguard:secret:v1|" + siteSlug + "|" + field + "|" + schemaVersion，
 // 防止跨字段/跨站点/跨版本的密文挪用。master key 丢失即无法恢复（PLAN.md §6.2）。
 package secretbox
 
@@ -19,7 +19,7 @@ import (
 const (
 	// AADSchema 是当前密文格式版本；升级格式时递增并把旧密文迁移。
 	AADSchema = 1
-	aadPrefix = "capgo:secret"
+	aadPrefix = "powguard:secret"
 )
 
 var b64 = base64.RawURLEncoding

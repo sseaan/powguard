@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"capgo/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/model"
 )
 
 var ErrNotFound = errors.New("sqlite: record not found")

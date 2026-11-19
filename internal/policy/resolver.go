@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"capgo/internal/protocol/format1"
-	"capgo/internal/security/secretbox"
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 // ResolveCacheTTL 是站点解析缓存时长（对齐 capd KEY_CACHE_TTL=5s）。

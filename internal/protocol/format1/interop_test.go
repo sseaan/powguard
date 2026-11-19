@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"capgo/internal/protocol/prng"
-	"capgo/internal/protocol/sha256pow"
+	"github.com/sseaan/powguard/internal/protocol/prng"
+	"github.com/sseaan/powguard/internal/protocol/sha256pow"
 )
 
 // TestGoToOfficialDirection 「Go 生成 → 官方验证」互操作（依赖 node；无 node 跳过）。
@@ -50,7 +50,7 @@ func TestGoToOfficialDirection(t *testing.T) {
 		"solutions": solutions,
 	}
 
-	tmp, err := os.MkdirTemp("", "capgo-interop-*")
+	tmp, err := os.MkdirTemp("", "powguard-interop-*")
 	if err != nil {
 		t.Fatal(err)
 	}

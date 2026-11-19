@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# capgo 备份：SQLite 一致性快照 + master key 提示
+# powguard 备份：SQLite 一致性快照 + master key 提示
 #
-# 用法：BACKUP_DIR=/var/backups/capgo ./deploy/backup.sh
+# 用法：BACKUP_DIR=/var/backups/powguard ./deploy/backup.sh
 # 建议由 systemd timer 或 cron 每日执行，并异地同步。
 #
-# 重要：数据库备份与 CAPGO_MASTER_KEY 必须成对保存。只备份数据库而丢 key
+# 重要：数据库备份与 POWGUARD_MASTER_KEY 必须成对保存。只备份数据库而丢 key
 # 等于永久失去所有站点密钥（密文不可恢复，PLAN.md §6.2）。
 set -euo pipefail
 
-DB_PATH="${CAPGO_DB_PATH:-/var/lib/capgo/capgo.sqlite3}"
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/capgo}"
+DB_PATH="${POWGUARD_DB_PATH:-/var/lib/powguard/powguard.sqlite3}"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/powguard}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
-CAPGO_BIN="${CAPGO_BIN:-/usr/local/bin/capgo}"
+POWGUARD_BIN="${POWGUARD_BIN:-/usr/local/bin/powguard}"
 
 stamp="$(date +%Y%m%d-%H%M%S)"
-dest="${BACKUP_DIR}/capgo-${stamp}.sqlite3"
+dest="${BACKUP_DIR}/powguard-${stamp}.sqlite3"
 
 mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
@@ -25,7 +25,7 @@ if [[ ! -f "$DB_PATH" ]]; then
 fi
 
 # VACUUM INTO 生成一致性快照，可在服务运行时执行（无需停服）
-"$CAPGO_BIN" backup --db "$DB_PATH" --out "$dest"
+"$POWGUARD_BIN" backup --db "$DB_PATH" --out "$dest"
 
 sha256sum "$dest" > "${dest}.sha256"
 chmod 0600 "$dest" "${dest}.sha256"
@@ -39,7 +39,7 @@ if command -v sqlite3 >/dev/null 2>&1; then
 fi
 
 # 清理过期备份
-find "$BACKUP_DIR" -maxdepth 1 -name 'capgo-*.sqlite3*' -mtime "+${KEEP_DAYS}" -delete
+find "$BACKUP_DIR" -maxdepth 1 -name 'powguard-*.sqlite3*' -mtime "+${KEEP_DAYS}" -delete
 
 echo "备份完成：$dest"
-echo "提醒：请确认 CAPGO_MASTER_KEY 已在独立位置备份（与数据库分开存放）。"
+echo "提醒：请确认 POWGUARD_MASTER_KEY 已在独立位置备份（与数据库分开存放）。"

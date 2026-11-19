@@ -11,13 +11,13 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"capgo/internal/api/public"
-	"capgo/internal/policy"
-	"capgo/internal/security/secretbox"
-	"capgo/internal/security/session"
-	"capgo/internal/store/memory"
-	"capgo/internal/store/model"
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/api/public"
+	"github.com/sseaan/powguard/internal/policy"
+	"github.com/sseaan/powguard/internal/security/secretbox"
+	"github.com/sseaan/powguard/internal/security/session"
+	"github.com/sseaan/powguard/internal/store/memory"
+	"github.com/sseaan/powguard/internal/store/model"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 type adminEnv struct {

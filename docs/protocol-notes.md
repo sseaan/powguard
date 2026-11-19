@@ -1,4 +1,4 @@
-# capgo 协议笔记（P0 规范锁定）
+# powguard 协议笔记（P0 规范锁定）
 
 > 来源与版本锁定见 [versions.lock](../versions.lock)。
 > 本文档是从官方源码逐行核对后的实现规范，Go 实现以此为准。
@@ -62,7 +62,7 @@ format-1 JWT 校验用它避免重复哈希长 token（`saltSeed = fnv1aResume(t
 - **solution 的字符串化**：JS 侧是 `salt + solutions[i]`（number → string 隐式转换）。
   官方不校验整数性，只查 `typeof === "number"` `[S]`。真实 widget/WASM 解出的
   nonce 是 `[0, 2^32)` 的非负整数。JS `String(n)` 对整数是十进制、无小数点；
-  `-0` → `"0"`；`1e21` 以上走指数记法。capgo 策略：接受 JSON number，
+  `-0` → `"0"`；`1e21` 以上走指数记法。powguard 策略：接受 JSON number，
   整数（含超出 int64 的安全整数范围内）按十进制字符串化，浮点/NaN/Infinity 拒绝
   （记 `invalid_solutions`）。与官方的差异只影响恶意构造的非整数输入，fixture
   对拍不覆盖浮点 nonce（明确记录为已知偏差）。
@@ -79,7 +79,7 @@ expires = Date.now() + expiresMs             // 默认 600000 = 10 分钟
 响应 { challenge: {c,s,d}, token, expires }
 ```
 
-- 参数上界 `[C]`（capjs-core 校验，capgo 沿用）：`c ≤ 1000`、`s ≤ 256`、`d ≤ 16`，
+- 参数上界 `[C]`（capjs-core 校验，powguard 沿用）：`c ≤ 1000`、`s ≤ 256`、`d ≤ 16`，
   均为正整数。
 - 过期挑战惰性清理（官方 5 分钟一轮）。
 
@@ -119,7 +119,7 @@ key = `${id}:${sha256(vertoken)}`
 capd 用 capjs-core 的无状态 format-1：challenge token 是 HS256 JWT
 （payload `{n,c,s,d,exp,iat,sk?}`），盐/目标由 token 字符串经同一个 PRNG 推导；
 一次性靠 Redis `SET NX` 记录 token 签名。redeem 签发的通行 token 是三段式
-`${siteKey}:${redeemId}:${redeemSecret}`。**capgo 的 format-1 采用 `[S]` 的有状态模型**
+`${siteKey}:${redeemId}:${redeemSecret}`。**powguard 的 format-1 采用 `[S]` 的有状态模型**
 （token 不透明、状态在内存），与 widget 兼容性完全一致（widget 把 token 当不透明种子）。
 
 ## 4. format-2（capjs-core 0.1.18 envelope）
@@ -127,7 +127,7 @@ capd 用 capjs-core 的无状态 format-1：challenge token 是 HS256 JWT
 ### 4.1 envelope `[C generateChallengeV2]`
 
 ```
-protocols = ["sha256-pow"]（capgo 当前只开放这一种；hashwx/rsw/instrumentation 不实现）
+protocols = ["sha256-pow"]（powguard 当前只开放这一种；hashwx/rsw/instrumentation 不实现）
 challenges = [ {protocol:"sha256-pow", payload:{ salt: randomHex(s), target: "0".repeat(d) }} × c ]
 tokenPayload = { f: 2, n: randomHex(16), exp, iat,
                  ev: encryptGcm({expected:[{protocol,salt,target}...]}, secret, "cap:fmt2-v1"),
@@ -158,7 +158,7 @@ token = jwtSign(tokenPayload, secret)
   12 字节随机 IV；blob = base64url(iv ‖ tag ‖ ciphertext)。
 - `jwtSigHex(token)`：取最后一段 base64url 解码为 bytes → hex，作为一次性消费 key。
 
-## 5. HTTP 面（capd 4.0.15 语义，capgo 的对外约定）
+## 5. HTTP 面（capd 4.0.15 语义，powguard 的对外约定）
 
 | 端点 | 语义 | 错误（状态码 + body） |
 |---|---|---|
@@ -169,7 +169,7 @@ token = jwtSign(tokenPayload, secret)
 | siteverify 成功 | `{success:true}`（可附 riskFlags 等） | |
 
 - `?wasm=0`：widget 在 WebAssembly 不可用时追加 `[W cap.js #fetchChallenge]`；
-  对 capgo（sha256-pow only）语义上忽略即可。
+  对 powguard（sha256-pow only）语义上忽略即可。
 - 限流：capd 默认 30 次 / 5 秒 / IP（可按站点覆盖），超限 429 `[D ratelimit.js]`。
 - body 上限：capd redeem 256 KiB → 413 `[D cap.js]`。
 - CORS `[D app.js onRequest]`：`Vary: Origin`；allowlist 命中回显 Origin（`*` 需显式）；
@@ -178,11 +178,11 @@ token = jwtSign(tokenPayload, secret)
 
 ### 5.1 通行 token 格式决策
 
-capgo redeem 签发 capd 风格三段式 `${siteKey}:${id}:${vertoken}`：
+powguard redeem 签发 capd 风格三段式 `${siteKey}:${id}:${vertoken}`：
 
 - capd 的 siteverify 从 `response` 第一段恢复 siteKey，并要求与路径一致 `[D siteverify.js]`；
 - 同时接受 legacy 两段式 `${id}:${vertoken}`（site 取路径 slug），保证官方 `[S]`
-  生成的 token 也能被 capgo siteverify 验证（共享内存状态不可行，纯 fixture 层互操作）。
+  生成的 token 也能被 powguard siteverify 验证（共享内存状态不可行，纯 fixture 层互操作）。
 
 ## 6. Widget 0.1.63 客户端行为（兼容性约束）
 
@@ -191,11 +191,11 @@ capgo redeem 签发 capd 风格三段式 `${siteKey}:${id}:${vertoken}`：
 - 请求：`{endpoint}challenge`（WASM 不可用时 `{endpoint}challenge?wasm=0`）→
   `{endpoint}redeem`，body `{token, solutions}`，`Content-Type: application/json`。
 - format-1：widget 用同一 PRNG 本地重推导盐/目标（token 为种子）——
-  **capgo 与官方的 PRNG 必须 bit-exact，否则用户永远解不出来**。
+  **powguard 与官方的 PRNG 必须 bit-exact，否则用户永远解不出来**。
 - format-2：widget 只解 `challenges[].protocol == "sha256-pow"` 的 payload
   （盐和目标直接来自服务端，PRNG 不参与求解）→ solution `{nonce}`。
 - 解题器 WASM：`window.CAP_CUSTOM_WASM_URL` 覆盖，默认 jsDelivr
-  `@cap.js/wasm@0.0.8/browser/cap_wasm_bg.wasm`；capgo 同源自托管。
+  `@cap.js/wasm@0.0.8/browser/cap_wasm_bg.wasm`；powguard 同源自托管。
 - token 刷新：widget 解析 `resp.token.split(".")[1]` 的 JWT claims 取 TTL，
   非 JWT（legacy hex token）回退 `resp.expires - now` `[W #scheduleRefresh]`。
 
@@ -205,11 +205,11 @@ capgo redeem 签发 capd 风格三段式 `${siteKey}:${id}:${vertoken}`：
   `CAP_SECRET_KEY=<site secret>`。
 - 客户端 `[T TkSubmit.vue]`：把 endpoint 原样写入 `data-cap-api-endpoint`；
   widget 从 `cdn.jsdmirror.com/npm/@cap.js/widget` 加载（**未钉版本** —— 大陆镜像，
-  当前 latest 即 0.1.63；因此 capgo 必须持续兼容最新 widget 的请求形状）。
+  当前 latest 即 0.1.63；因此 powguard 必须持续兼容最新 widget 的请求形状）。
 - 服务端 `[T services/cap.ts / spam.ts checkCapCaptcha]`：
   `POST {endpoint 去尾斜杠}/siteverify`，body `{secret, response: token}`，
   判定只看 `data.success`，失败时把 `data.error` 抛给用户。
-- 内嵌模式（`CAP_API_ENDPOINT` 为空）走 Twikoo 自带 @cap.js/server，与 capgo 无关。
+- 内嵌模式（`CAP_API_ENDPOINT` 为空）走 Twikoo 自带 @cap.js/server，与 powguard 无关。
 
 ## 8. 明确不实现（记录边界，防误接）
 
@@ -220,10 +220,10 @@ HashWX、RSW time-lock、instrumentation/behavior、capd 规则引擎/GeoIP/webh
 ## 9. 已知偏差与风险
 
 1. **浮点 nonce**：官方接受 `typeof number` 的任意值（如 `1.5`、`1e30`）并按 JS
-   `String(n)` 语义哈希；capgo 只接受 `[0, 2^53)` 整数。恶意/畸形输入行为不同，
+   `String(n)` 语义哈希；powguard 只接受 `[0, 2^53)` 整数。恶意/畸形输入行为不同，
    正常 widget 不受影响。
-2. **challenge 参数上界**：`[S]` 不设上界（信任部署方配置）；capgo 按 `[C]` 的
+2. **challenge 参数上界**：`[S]` 不设上界（信任部署方配置）；powguard 按 `[C]` 的
    1000/256/16 钳制，防 DoS。
-3. **widget 版本漂移**：Twikoo 加载的 widget 是 jsdmirror 的 latest，capgo 的
+3. **widget 版本漂移**：Twikoo 加载的 widget 是 jsdmirror 的 latest，powguard 的
    兼容矩阵必须覆盖发布时的最新 widget（0.1.63）。
-4. **大陆网络**：官方默认 WASM/CDN 不可达是常态，capgo 必须同源托管全部静态资产。
+4. **大陆网络**：官方默认 WASM/CDN 不可达是常态，powguard 必须同源托管全部静态资产。

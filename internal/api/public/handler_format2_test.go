@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"capgo/internal/policy"
-	"capgo/internal/protocol/format1"
-	"capgo/internal/protocol/sha256pow"
-	"capgo/internal/store/memory"
+	"github.com/sseaan/powguard/internal/policy"
+	"github.com/sseaan/powguard/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/protocol/sha256pow"
+	"github.com/sseaan/powguard/internal/store/memory"
 )
 
 func newServer(mux *http.ServeMux) *httptest.Server { return httptest.NewServer(mux) }

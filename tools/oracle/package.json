@@ -1,5 +1,5 @@
 {
-  "name": "capgo-oracle",
+  "name": "powguard-oracle",
   "private": true,
   "description": "官方 cap 包锁定版本 fixture 生成 oracle —— 仅用于开发/测试，不进入运行时",
   "type": "module",

@@ -1,4 +1,4 @@
-module capgo
+module github.com/sseaan/powguard
 
 go 1.26.0
 

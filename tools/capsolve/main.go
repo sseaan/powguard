@@ -1,4 +1,4 @@
-// capsolve —— capgo 端到端求解与验收 CLI。
+// capsolve —— powguard 端到端求解与验收 CLI。
 //
 // 用法：
 //
@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"capgo/internal/protocol/format1"
-	"capgo/internal/protocol/sha256pow"
+	"github.com/sseaan/powguard/internal/protocol/format1"
+	"github.com/sseaan/powguard/internal/protocol/sha256pow"
 )
 
 type challengeResp struct {

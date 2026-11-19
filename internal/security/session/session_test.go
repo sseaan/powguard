@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"capgo/internal/store/sqlite"
+	"github.com/sseaan/powguard/internal/store/sqlite"
 )
 
 func newManager(t *testing.T) (*Manager, func()) {
