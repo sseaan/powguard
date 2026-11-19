@@ -2,7 +2,7 @@
 
 面向在本仓库工作的 AI Agent 与贡献者。开始修改前，先读：
 
-1. [README.md](README.md) —— 功能、快速开始、API 与配置
+1. [README.md](README.md) / [README.CN.md](README.CN.md) —— 功能、快速开始、API 与配置（English / 中文）
 2. 本文件 —— 不变量、架构、修改流程与发布门槛
 3. 相关专题文档：[docs/protocol-notes.md](docs/protocol-notes.md)、[docs/compat-matrix.md](docs/compat-matrix.md)、[deploy/README.md](deploy/README.md)
 
@@ -193,7 +193,7 @@ make oracle
 
 ### 文档
 
-- README、`AGENT.md`、`docs/`、`deploy/README.md` 必须与代码同提交更新。
+- README.md / README.CN.md、`AGENT.md`、`docs/`、`deploy/README.md` 必须与代码同提交更新。
 - 不把真实 secret、admin key、master key、生产 IP 或未脱敏日志写入仓库。
 - 验收记录只写可复现的命令、状态码和结论。
 
