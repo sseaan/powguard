@@ -8,7 +8,7 @@
 //	                      全新库可缺省（自动生成临时 key，重启后密钥不可用，仅限本机演示）
 //	POWGUARD_ADMIN_KEY       管理面板登录密钥；缺省则管理面板整体禁用
 //	POWGUARD_TRUST_PROXY     可信反代网段（逗号分隔 CIDR，如 127.0.0.1/8）；
-//	                      配置后才读取 X-Forwarded-For（PLAN.md §6.3）
+//	                      配置后才读取 X-Forwarded-For
 //	POWGUARD_PUBLIC_URL      公开 URL（https 时 cookie 自动 Secure；展示用）
 //
 // 首次启动（库中无站点）会用 POWGUARD_SITE_SLUG / POWGUARD_SITE_SECRET 引导首个站点；
@@ -109,7 +109,7 @@ func main() {
 	ephemeralMaster := false
 	if masterRaw == nil {
 		if has, _ := secretRepo.HasAnySecrets(); has {
-			logger.Error("库中已有加密密钥但未提供 POWGUARD_MASTER_KEY，拒绝启动（密文不可恢复，PLAN.md §6.2）")
+			logger.Error("库中已有加密密钥但未提供 POWGUARD_MASTER_KEY，拒绝启动（密文不可恢复）")
 			os.Exit(1)
 		}
 		buf := make([]byte, 32)

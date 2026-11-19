@@ -1,6 +1,6 @@
 package main
 
-// 运维子命令（同一二进制，PLAN.md §9/§10）：
+// 运维子命令（同一二进制）：
 //
 //	powguard keyrotate   --db <path> --old-key <k> --new-key <k>
 //	powguard backup      --db <path> --out <file>

@@ -383,6 +383,9 @@ func TestGoToOfficialDirection(t *testing.T) {
 	if err != nil {
 		t.Skip("未安装 node，跳过官方 oracle 互操作")
 	}
+	if _, err := os.Stat("../../../tools/oracle/node_modules/@cap.js/server"); err != nil {
+		t.Skip("tools/oracle 依赖未安装（cd tools/oracle && npm ci），跳过官方 oracle 互操作")
+	}
 
 	// Go 生成 format-2 挑战并求解
 	secret := []byte("interop-secret-16bytes-ok!!!")

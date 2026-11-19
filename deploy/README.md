@@ -3,7 +3,7 @@
 面向单实例部署：一个静态二进制 + SQLite 文件 + systemd + 反向代理。
 无 Docker / Node / Redis。目标机器示例：Aliyun 深圳，`cap.example.com`。
 
-> 单实例语义（PLAN.md §6.1）：challenge 与通行 token 保存在进程内存，
+> 单实例语义：challenge 与通行 token 保存在进程内存，
 > **重启会让未完成的挑战失效**（访客重解一次即可）。不要同时运行两个实例共用同一数据库。
 
 ---
@@ -258,7 +258,7 @@ powguard verify-keys --db /var/lib/powguard/powguard.sqlite3 --master-key "$POWG
 | 大陆访问 widget 卡住 | 走了 jsDelivr | 集成页使用同源 `CAP_WASM_URL` 片段 |
 | cookie 无法保存 | HTTPS 但 `POWGUARD_PUBLIC_URL` 为 http | 改成 `https://…` |
 
-## 11. 发布门槛（PLAN.md §9）
+## 11. 发布门槛
 
 升级前必须全部通过，否则不得发布：
 

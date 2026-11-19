@@ -1,7 +1,7 @@
 // Package events 提供审计事件的异步落库：公共请求路径永不因审计写入阻塞。
 //
 // IP 以 keyed digest 存储（HMAC-SHA256(master 派生 key)），
-// 事件 metadata 为白名单字段（PLAN.md §6.3），永不写入请求体/密钥/明文 IP。
+// 事件 metadata 为白名单字段，永不写入请求体/密钥/明文 IP。
 package events
 
 import (

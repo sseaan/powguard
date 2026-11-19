@@ -1,4 +1,4 @@
-// Package model 定义 SQLite 持久化的数据结构（PLAN.md §6.1）。
+// Package model 定义 SQLite 持久化的数据结构。
 package model
 
 import "time"
@@ -9,7 +9,7 @@ type Site struct {
 	Slug                string
 	Name                string
 	Enabled             bool
-	Deleted             bool   // 软删除：保留审计上下文（PLAN.md §3.2）
+	Deleted             bool   // 软删除：保留审计上下文
 	Protocol            string // format1 | format2（sha256-pow）
 	ChallengeCount      int
 	ChallengeSize       int
@@ -52,7 +52,7 @@ type SiteSecret struct {
 	RotatedAt     int64
 }
 
-// AdminSession 是管理会话行（只存 token 哈希，PLAN.md §6.1）。
+// AdminSession 是管理会话行（只存 token 哈希）。
 type AdminSession struct {
 	ID        int64
 	TokenHash string // sha256(token) hex
@@ -61,7 +61,7 @@ type AdminSession struct {
 	Revoked   bool
 }
 
-// Event 是审计事件（白名单字段，禁止敏感内容，PLAN.md §6.3）。
+// Event 是审计事件（白名单字段，禁止敏感内容）。
 type Event struct {
 	ID       int64
 	Ts       int64
@@ -82,7 +82,7 @@ const (
 	SettingPublicURL          = "public_url"
 )
 
-// DefaultEventRetentionDays 是事件保留期默认值（PLAN.md §6.3：30 天）。
+// DefaultEventRetentionDays 是事件保留期默认值。
 const DefaultEventRetentionDays = 30
 
 // 纪元辅助。

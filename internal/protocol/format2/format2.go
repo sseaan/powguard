@@ -1,7 +1,7 @@
 // Package format2 实现 capjs-core@0.1.18 的 format-2 envelope（stateless JWT）。
 //
 // powguard 当前只开放 "sha256-pow" 协议；hashwx / rsw / instrumentation 是
-// 明确的后续扩展（PLAN.md §2.1），遇到时返回 invalid 语义。
+// 明确的后续扩展，遇到时返回 invalid 语义。
 package format2
 
 import (

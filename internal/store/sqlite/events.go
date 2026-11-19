@@ -140,7 +140,7 @@ func (r *EventRepo) TopReasons(typ string, nowMs int64, days int, limit int) (ma
 	return out, rows.Err()
 }
 
-// DeleteOlderThan 按保留天数清理（PLAN.md §6.3：默认 30 天）。
+// DeleteOlderThan 按保留天数清理（默认 30 天）。
 func (r *EventRepo) DeleteOlderThan(nowMs int64, retentionDays int) (int64, error) {
 	if retentionDays <= 0 {
 		retentionDays = model.DefaultEventRetentionDays

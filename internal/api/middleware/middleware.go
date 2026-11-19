@@ -1,6 +1,5 @@
 // Package middleware 提供 public API 的横切能力：CORS、限流、请求体上限、
-// 请求 ID 与访问日志。P1 阶段 IP 直接取 RemoteAddr（可信反代模式在
-// P2/P3 引入，见 PLAN.md §6.3）。
+// 请求 ID 与访问日志。IP 取 RemoteAddr；配置可信反代后读取 X-Forwarded-For。
 package middleware
 
 import (
@@ -107,7 +106,7 @@ func MaxBytes(n int64) func(http.Handler) http.Handler {
 }
 
 // IPExtractor 从请求提取客户端 IP：直连模式只信 RemoteAddr；
-// 配置可信 CIDR 后才读取 X-Forwarded-For（PLAN.md §6.3）。
+// 配置可信 CIDR 后才读取 X-Forwarded-For。
 type IPExtractor struct {
 	Trusted []*net.IPNet
 }

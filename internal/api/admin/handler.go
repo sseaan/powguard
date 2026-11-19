@@ -28,7 +28,7 @@ import (
 // CookieName 是管理会话 cookie 名。
 const CookieName = "powguard_admin"
 
-// loginLimit 是登录尝试限流：每 IP 每 60 秒 5 次（PLAN.md §6.3）。
+// loginLimit 是登录尝试限流：每 IP 每 60 秒 5 次。
 var loginLimits = struct {
 	max      int
 	windowMs int64

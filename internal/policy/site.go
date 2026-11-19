@@ -10,7 +10,7 @@ import (
 	"github.com/sseaan/powguard/internal/protocol/format1"
 )
 
-// SlugRe 是站点 slug 的合法形态（PLAN.md §3.2：小写字母/数字/-/_，1–32）。
+// SlugRe 是站点 slug 的合法形态：小写字母/数字/-/_，1–32。
 var SlugRe = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
 
 // ValidSlug 校验 slug。
@@ -19,7 +19,7 @@ func ValidSlug(s string) bool { return SlugRe.MatchString(s) }
 // CORSOrigin 是规范化后的 Origin（scheme://host[:port]，小写）。
 type CORSOrigin = string
 
-// 协议常量（PLAN.md §P2/P3：当前开放 format-1 与 format-2 sha256-pow）。
+// 协议常量（当前开放 format-1 与 format-2 sha256-pow）。
 const (
 	ProtocolFormat1 = "format1"
 	ProtocolFormat2 = "format2"

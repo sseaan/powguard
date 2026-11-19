@@ -10,4 +10,4 @@
 | `cap_wasm_bg.wasm` | `@cap.js/wasm` browser/ | 0.0.8 | 未修改；求解器 WASM（单 wbg import） |
 
 版本以根目录 `versions.lock` 与 `tools/oracle/package-lock.json` 为准。
-升级流程必须重跑 `tools/oracle` 互操作矩阵与浏览器回归（PLAN.md §9 发布门槛）。
+升级流程必须重跑 `tools/oracle` 互操作矩阵与浏览器回归。

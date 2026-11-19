@@ -1,5 +1,5 @@
 {
-  "comment": "powguard 官方依赖版本锁定 —— 升级必须重跑 oracle fixtures 与浏览器矩阵（PLAN.md §9）",
+  "comment": "powguard 官方依赖版本锁定 —— 升级必须重跑 oracle fixtures 与浏览器矩阵",
   "ecosystem": {
     "@cap.js/server": "4.0.5",
     "@cap.js/widget": "0.1.63",

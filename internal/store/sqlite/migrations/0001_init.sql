@@ -1,4 +1,4 @@
--- 0001：初始 schema（PLAN.md §6.1）
+-- 0001：初始 schema
 CREATE TABLE sites (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,
     slug                 TEXT NOT NULL UNIQUE,

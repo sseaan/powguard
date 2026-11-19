@@ -5,7 +5,7 @@
 # 建议由 systemd timer 或 cron 每日执行，并异地同步。
 #
 # 重要：数据库备份与 POWGUARD_MASTER_KEY 必须成对保存。只备份数据库而丢 key
-# 等于永久失去所有站点密钥（密文不可恢复，PLAN.md §6.2）。
+# 等于永久失去所有站点密钥（密文不可恢复）。
 set -euo pipefail
 
 DB_PATH="${POWGUARD_DB_PATH:-/var/lib/powguard/powguard.sqlite3}"

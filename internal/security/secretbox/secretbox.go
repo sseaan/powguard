@@ -2,7 +2,7 @@
 //
 // 密文布局与 capjs-core 的 GCM blob 一致：base64url(nonce[12] ‖ tag[16] ‖ ct)。
 // 每条密文绑定 AAD = "powguard:secret:v1|" + siteSlug + "|" + field + "|" + schemaVersion，
-// 防止跨字段/跨站点/跨版本的密文挪用。master key 丢失即无法恢复（PLAN.md §6.2）。
+// 防止跨字段/跨站点/跨版本的密文挪用。master key 丢失即无法恢复。
 package secretbox
 
 import (
@@ -40,7 +40,7 @@ func New(masterKey []byte) (*Box, error) {
 	return &Box{key: append([]byte(nil), masterKey...)}, nil
 }
 
-// DeriveIPDigestKey 从 master key 派生事件 IP 摘要密钥（HMAC，PLAN.md §6.3：
+// DeriveIPDigestKey 从 master key 派生事件 IP 摘要密钥（HMAC：
 // 事件中保存 keyed digest，不保存明文 IP）。
 func (b *Box) DeriveIPDigestKey() []byte {
 	return b.derive("ip-digest")
@@ -101,7 +101,7 @@ func (b *Box) Open(blob, siteSlug, field string) ([]byte, error) {
 	return plaintext, nil
 }
 
-// Reencrypt 用新 master key 重新加密（master key 轮换演练，PLAN.md §9）。
+// Reencrypt 用新 master key 重新加密（master key 轮换演练）。
 func Reencrypt(oldBox, newBox *Box, blob, siteSlug, field string) (string, error) {
 	plaintext, err := oldBox.Open(blob, siteSlug, field)
 	if err != nil {

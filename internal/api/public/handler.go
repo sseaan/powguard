@@ -43,7 +43,7 @@ type Handler struct {
 	// Clock 返回当前 Unix 毫秒；测试可注入。
 	Clock  func() int64
 	Logger *slog.Logger
-	// Events 非 nil 时异步审计；IP 取摘要不落明文（PLAN.md §6.3）。
+	// Events 非 nil 时异步审计；IP 取摘要不落明文。
 	Events *events.Sink
 	// IPs 为 nil 时用直连 RemoteAddr；配置可信网段后读 XFF。
 	IPs *middleware.IPExtractor
@@ -122,7 +122,7 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
-// writeRedeemError 是 redeem 失败响应（PLAN.md §3.1：{success:false, error}）。
+// writeRedeemError 是 redeem 失败响应（{success:false, error}）。
 func writeRedeemError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]any{"success": false, "error": msg})
 }

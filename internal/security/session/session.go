@@ -1,5 +1,5 @@
 // Package session 管理管理面板会话：随机不透明 token、只落库其 sha256 哈希、
-// 过期与撤销（PLAN.md §6.3）。Cookie 由 API 层装配（HttpOnly/Secure/SameSite=Lax）。
+// 过期与撤销。Cookie 由 API 层装配（HttpOnly/Secure/SameSite=Lax）。
 package session
 
 import (

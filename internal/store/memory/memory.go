@@ -1,5 +1,5 @@
 // Package memory 提供进程内短期状态：challenge、verification token、限流窗口。
-// 全部消费路径都在锁内完成读-删，保证一次性语义原子（PLAN.md §6.1）。
+// 全部消费路径都在锁内完成读-删，保证一次性语义原子。
 package memory
 
 import (

@@ -10,7 +10,7 @@ import (
 )
 
 // handleEventStream 是 SSE 实时事件推送：每 interval 轮询增量事件，
-// 无新事件时发注释心跳保活。前端断线自动回退到 /admin/events 分页轮询（PLAN.md §7）。
+// 无新事件时发注释心跳保活。前端断线自动回退到 /admin/events 分页轮询。
 func (h *Handler) handleEventStream(w http.ResponseWriter, r *http.Request, _ string) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {

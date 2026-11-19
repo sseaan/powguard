@@ -1,6 +1,6 @@
 // Package provider 为后续协议扩展（HashWX、RSW、instrumentation）定义稳定边界。
 //
-// 当前版本（PLAN.md §2.1）只实现 format-1 与 format-2 sha256-pow；
+// 当前版本只实现 format-1 与 format-2 sha256-pow；
 // 本包只声明接入契约，不提供任何半成品实现 —— 新协议必须自带 fixture、
 // 官方 oracle 双向对拍和真实浏览器测试后才允许注册启用。
 package provider

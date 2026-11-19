@@ -12,7 +12,7 @@ build:
 	$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/powguard
 	$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o capsolve ./tools/capsolve
 
-## 生产构建：静态、无 CGO、Linux amd64（PLAN.md §10）
+## 生产构建：静态、无 CGO、Linux amd64
 linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 		$(GO) build -trimpath -ldflags '$(LDFLAGS)' -o dist/powguard-linux-amd64 ./cmd/powguard
@@ -27,7 +27,7 @@ release: linux
 test:
 	$(GO) test ./... -count=1
 
-## 并发安全与数据竞争（PLAN.md §9 发布门槛）
+## 并发安全与数据竞争
 race:
 	$(GO) test -race ./... -count=1
 
@@ -39,6 +39,7 @@ fmt:
 
 ## 协议互操作（官方 → Go / Go → 官方），需要 node 与 tools/oracle 已安装
 oracle:
+	@test -d tools/oracle/node_modules/@cap.js/server || { echo "缺少 tools/oracle 依赖：cd tools/oracle && npm ci" >&2; exit 1; }
 	cd tools/oracle && node gen-fixtures.mjs
 	$(GO) test ./internal/protocol/... -count=1
 

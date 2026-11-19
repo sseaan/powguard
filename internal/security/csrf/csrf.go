@@ -1,4 +1,4 @@
-// Package csrf 提供管理面板修改操作的 CSRF 防护（PLAN.md §6.3）。
+// Package csrf 提供管理面板修改操作的 CSRF 防护。
 //
 // 方案：per-session 确定性 token = HMAC-SHA256(csrfKey, sessionTokenHash)。
 // 服务端无需额外存储；token 绑定会话，随会话撤销即失效。

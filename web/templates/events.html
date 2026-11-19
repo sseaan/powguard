@@ -114,7 +114,7 @@
       try { prepend(JSON.parse(ev.data)); } catch {}
     });
     stream.onerror = () => {
-      // 断线自动回退到分页轮询（PLAN.md §7）
+      // 断线自动回退到分页轮询
       el("#stream-state").textContent = "连接中断：已回退轮询";
       stopStream();
       load();
