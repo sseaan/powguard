@@ -36,7 +36,7 @@ siteverify ← { secret, response } → { success }   // 常数时间比较 secr
 - [x] capsolve CLI（测试与压测工具）
 - [x] 真实浏览器 e2e（未修改 widget 0.1.63 + 同源 WASM，format-1 与 format-2 双格式）
 - [x] format-2 SHA-256 接入公开端点与按站点协议开关（scope 隔离、nonce 一次性、capd 错误语义）
-- [ ] WebUI v1（登录、密钥管理、集成片段、SSE 事件流、基础统计）
+- [x] WebUI v1（登录、概览统计、站点配置、集成片段、密钥 reveal/rotate、事件 SSE、实例设置）
 - [ ] 部署（systemd + Caddy）与 Twikoo 对接验收
 
 ## 许可证

@@ -1,0 +1,135 @@
+{{define "events.html"}}
+<h1>事件</h1>
+<div id="alert" class="alert"></div>
+
+<div class="panel">
+  <div class="row">
+    <div>
+      <label for="f-site">站点</label>
+      <select id="f-site"><option value="">全部</option></select>
+    </div>
+    <div>
+      <label for="f-type">类型</label>
+      <select id="f-type">
+        <option value="">全部</option>
+        <option value="challenge">challenge</option>
+        <option value="redeem">redeem</option>
+        <option value="siteverify">siteverify</option>
+      </select>
+    </div>
+    <div class="row" style="align-items:flex-end;gap:.6rem">
+      <button id="refresh-btn">刷新</button>
+      <button id="stream-btn" class="primary">实时推送</button>
+      <span id="stream-state" class="muted"></span>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:1rem">
+  <table>
+    <thead><tr><th>时间</th><th>站点</th><th>类型</th><th>结果</th><th>协议</th><th>原因</th><th class="right">耗时</th></tr></thead>
+    <tbody id="event-rows"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">暂无事件（产生一次验证后这里会出现）</div>
+</div>
+
+<script type="module">
+  import { api, el, showAlert, outcomeBadge, protocolBadge, fmtTime, fmtDuration, mountNav, ensureCSRF } from "/static/app.js";
+  ensureCSRF();
+  mountNav("events");
+
+  let stream = null;
+
+  function rowFor(e) {
+    const tr = document.createElement("tr");
+    const cells = [
+      fmtTime(e.ts),
+      e.site || "—",
+      e.type || "—",
+    ];
+    for (const c of cells) {
+      const td = document.createElement("td");
+      td.textContent = c;
+      if (c === fmtTime(e.ts)) td.className = "mono nowrap muted";
+      tr.append(td);
+    }
+    const tdOutcome = document.createElement("td"); tdOutcome.append(outcomeBadge(e.outcome));
+    const tdProto = document.createElement("td"); tdProto.append(protocolBadge(e.protocol));
+    const tdReason = document.createElement("td"); tdReason.className = "mono muted"; tdReason.textContent = e.reason || "—";
+    const tdDur = document.createElement("td"); tdDur.className = "num right"; tdDur.textContent = fmtDuration(e.dur_ms);
+    tr.append(tdOutcome, tdProto, tdReason, tdDur);
+    return tr;
+  }
+
+  function prepend(e) {
+    const tbody = el("#event-rows");
+    tbody.prepend(rowFor(e));
+    while (tbody.children.length > 200) tbody.lastChild.remove();
+    el("#empty").style.display = "none";
+  }
+
+  async function loadSites() {
+    try {
+      const data = await api("GET", "/admin/api/sites");
+      const sel = el("#f-site");
+      for (const s of data.sites) {
+        const opt = document.createElement("option");
+        opt.value = s.slug; opt.textContent = s.slug;
+        sel.append(opt);
+      }
+    } catch { /* 登录态问题由 api 处理 */ }
+  }
+
+  async function load() {
+    const site = el("#f-site").value;
+    const type = el("#f-type").value;
+    const qs = new URLSearchParams({ limit: "100" });
+    if (site) qs.set("site", site);
+    if (type) qs.set("type", type);
+    try {
+      const data = await api("GET", `/admin/api/events?${qs}`);
+      const tbody = el("#event-rows");
+      tbody.innerHTML = "";
+      for (const e of data.events) tbody.append(rowFor(e));
+      el("#empty").style.display = data.events.length ? "none" : "block";
+    } catch (err) {
+      showAlert(el("#alert"), err.message);
+    }
+  }
+
+  function stopStream() {
+    if (stream) { stream.close(); stream = null; }
+    el("#stream-state").textContent = "";
+    el("#stream-btn").textContent = "实时推送";
+  }
+
+  function startStream() {
+    const site = el("#f-site").value;
+    const qs = new URLSearchParams();
+    if (site) qs.set("site", site);
+    stream = new EventSource(`/admin/api/events/stream?${qs}`);
+    el("#stream-btn").textContent = "停止推送";
+    el("#stream-state").textContent = "已连接";
+    stream.addEventListener("event", (ev) => {
+      try { prepend(JSON.parse(ev.data)); } catch {}
+    });
+    stream.onerror = () => {
+      // 断线自动回退到分页轮询（PLAN.md §7）
+      el("#stream-state").textContent = "连接中断：已回退轮询";
+      stopStream();
+      load();
+      if (!stream) setInterval(load, 10000);
+    };
+  }
+
+  el("#refresh-btn").addEventListener("click", load);
+  el("#f-site").addEventListener("change", () => { stopStream(); load(); });
+  el("#f-type").addEventListener("change", load);
+  el("#stream-btn").addEventListener("click", () => {
+    if (stream) stopStream();
+    else startStream();
+  });
+
+  loadSites().then(load);
+</script>
+{{end}}

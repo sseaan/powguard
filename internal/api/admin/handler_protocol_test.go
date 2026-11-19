@@ -13,7 +13,7 @@ func TestSiteProtocolFormat2(t *testing.T) {
 	csrfTok, cookie := e.login(t)
 
 	// 建站即选 format-2
-	resp, m := e.do(t, http.MethodPost, "/admin/sites", map[string]any{
+	resp, m := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{
 		"slug": "v2", "protocol": "format2",
 	}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 201 {
@@ -48,7 +48,7 @@ func TestSiteProtocolFormat2(t *testing.T) {
 	}
 
 	// 切回 format-1 → 立即恢复 format-1 形态（缓存已失效）
-	resp, m = e.do(t, http.MethodPost, "/admin/sites/v2", map[string]any{"protocol": "format1"}, e.auth(csrfTok, cookie))
+	resp, m = e.do(t, http.MethodPost, "/admin/api/sites/v2", map[string]any{"protocol": "format1"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 200 {
 		t.Fatalf("切换失败：%d %v", resp.StatusCode, m)
 	}
@@ -61,7 +61,7 @@ func TestSiteProtocolFormat2(t *testing.T) {
 	}
 
 	// 非法协议拒绝
-	resp, m = e.do(t, http.MethodPost, "/admin/sites/v2", map[string]any{"protocol": "hashwx"}, e.auth(csrfTok, cookie))
+	resp, m = e.do(t, http.MethodPost, "/admin/api/sites/v2", map[string]any{"protocol": "hashwx"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 400 {
 		t.Fatalf("非法协议应 400（HashWX 未实现不开放）：%d %v", resp.StatusCode, m)
 	}
@@ -70,7 +70,7 @@ func TestSiteProtocolFormat2(t *testing.T) {
 func TestSiteJSONIncludesProtocol(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
-	resp, m := e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "p1"}, e.auth(csrfTok, cookie))
+	resp, m := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "p1"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 201 {
 		t.Fatalf("创建失败：%v", m)
 	}

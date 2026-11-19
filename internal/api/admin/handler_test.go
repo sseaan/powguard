@@ -123,7 +123,7 @@ func (e *adminEnv) do(t *testing.T, method, path string, body any, hdr map[strin
 // login 建立会话并返回 csrf + cookie header。
 func (e *adminEnv) login(t *testing.T) (csrfToken, cookie string) {
 	t.Helper()
-	resp, m := e.do(t, http.MethodPost, "/admin/login", map[string]string{"key": "admin-key-high-entropy-12345"}, nil)
+	resp, m := e.do(t, http.MethodPost, "/admin/api/login", map[string]string{"key": "admin-key-high-entropy-12345"}, nil)
 	if resp.StatusCode != 200 {
 		t.Fatalf("login 失败：%v %v", resp.StatusCode, m)
 	}
@@ -154,7 +154,7 @@ func TestAdminDisabledWhenNoKey(t *testing.T) {
 	}
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
-	resp, err := http.Post(srv.URL+"/admin/login", "application/json", strings.NewReader(`{"key":"x"}`))
+	resp, err := http.Post(srv.URL+"/admin/api/login", "application/json", strings.NewReader(`{"key":"x"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,13 +167,13 @@ func TestLoginFlow(t *testing.T) {
 	e := newEnv(t, nil)
 
 	// 错误 key
-	resp, m := e.do(t, http.MethodPost, "/admin/login", map[string]string{"key": "wrong"}, nil)
+	resp, m := e.do(t, http.MethodPost, "/admin/api/login", map[string]string{"key": "wrong"}, nil)
 	if resp.StatusCode != 401 {
 		t.Fatalf("错误 key 应 401：%d", resp.StatusCode)
 	}
 
 	// 正确 key：cookie 旗标
-	resp, m = e.do(t, http.MethodPost, "/admin/login", map[string]string{"key": "admin-key-high-entropy-12345"}, nil)
+	resp, m = e.do(t, http.MethodPost, "/admin/api/login", map[string]string{"key": "admin-key-high-entropy-12345"}, nil)
 	if resp.StatusCode != 200 || m["csrf"] == "" {
 		t.Fatalf("登录失败：%v %v", resp.StatusCode, m)
 	}
@@ -193,23 +193,23 @@ func TestLoginFlow(t *testing.T) {
 	cookie := c.Name + "=" + c.Value
 
 	// whoami
-	resp, m = e.do(t, http.MethodGet, "/admin/session", nil, e.auth("", cookie))
+	resp, m = e.do(t, http.MethodGet, "/admin/api/session", nil, e.auth("", cookie))
 	if resp.StatusCode != 200 || m["authenticated"] != true {
 		t.Fatalf("whoami 失败：%v", m)
 	}
 
 	// 无会话 401
-	resp, _ = e.do(t, http.MethodGet, "/admin/session", nil, nil)
+	resp, _ = e.do(t, http.MethodGet, "/admin/api/session", nil, nil)
 	if resp.StatusCode != 401 {
 		t.Errorf("无 cookie 应 401：%d", resp.StatusCode)
 	}
 
 	// 登出后失效
-	resp, m = e.do(t, http.MethodPost, "/admin/logout", nil, e.auth(csrfTok, cookie))
+	resp, m = e.do(t, http.MethodPost, "/admin/api/logout", nil, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 200 {
 		t.Fatalf("logout 失败：%v", m)
 	}
-	resp, _ = e.do(t, http.MethodGet, "/admin/session", nil, e.auth("", cookie))
+	resp, _ = e.do(t, http.MethodGet, "/admin/api/session", nil, e.auth("", cookie))
 	if resp.StatusCode != 401 {
 		t.Errorf("登出后应 401：%d", resp.StatusCode)
 	}
@@ -218,12 +218,12 @@ func TestLoginFlow(t *testing.T) {
 func TestLoginRateLimit(t *testing.T) {
 	e := newEnv(t, nil)
 	for i := 0; i < 5; i++ {
-		resp, _ := e.do(t, http.MethodPost, "/admin/login", map[string]string{"key": "wrong"}, nil)
+		resp, _ := e.do(t, http.MethodPost, "/admin/api/login", map[string]string{"key": "wrong"}, nil)
 		if resp.StatusCode != 401 {
 			t.Fatalf("第 %d 次应 401：%d", i+1, resp.StatusCode)
 		}
 	}
-	resp, m := e.do(t, http.MethodPost, "/admin/login", map[string]string{"key": "admin-key-high-entropy-12345"}, nil)
+	resp, m := e.do(t, http.MethodPost, "/admin/api/login", map[string]string{"key": "admin-key-high-entropy-12345"}, nil)
 	if resp.StatusCode != 429 {
 		t.Fatalf("第 6 次应 429：%d %v", resp.StatusCode, m)
 	}
@@ -233,17 +233,17 @@ func TestCSRFEnforced(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
 	// 无 CSRF
-	resp, m := e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "x"}, e.auth("", cookie))
+	resp, m := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "x"}, e.auth("", cookie))
 	if resp.StatusCode != 403 || m["error"] != "CSRF token invalid" {
 		t.Fatalf("无 CSRF 应 403：%d %v", resp.StatusCode, m)
 	}
 	// 错误 CSRF
-	resp, _ = e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "x"}, e.auth("bad", cookie))
+	resp, _ = e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "x"}, e.auth("bad", cookie))
 	if resp.StatusCode != 403 {
 		t.Fatalf("错误 CSRF 应 403：%d", resp.StatusCode)
 	}
 	// 正确 CSRF + 非法 slug → 400（证明过了 CSRF 层）
-	resp, _ = e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "Bad Slug!"}, e.auth(csrfTok, cookie))
+	resp, _ = e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "Bad Slug!"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 400 {
 		t.Fatalf("合法 CSRF 后应进业务层：%d", resp.StatusCode)
 	}
@@ -253,7 +253,7 @@ func TestSiteCreateSecretEncryptedAtRest(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
 
-	resp, m := e.do(t, http.MethodPost, "/admin/sites", map[string]any{
+	resp, m := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{
 		"slug": "blog", "name": "博客", "cors_allow_all": false,
 		"cors_origins": []string{"https://blog.example.com"},
 	}, e.auth(csrfTok, cookie))
@@ -289,7 +289,7 @@ func TestSiteCreateSecretEncryptedAtRest(t *testing.T) {
 	}
 
 	// 重复 slug → 409
-	resp, m = e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "blog"}, e.auth(csrfTok, cookie))
+	resp, m = e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "blog"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 409 {
 		t.Fatalf("重复 slug 应 409：%d %v", resp.StatusCode, m)
 	}
@@ -304,13 +304,13 @@ func TestSiteCreateSecretEncryptedAtRest(t *testing.T) {
 func TestSiteUpdateAndPublicBehavior(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
-	resp0, m0 := e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "cfg"}, e.auth(csrfTok, cookie))
+	resp0, m0 := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "cfg"}, e.auth(csrfTok, cookie))
 	if resp0.StatusCode != 201 {
 		t.Fatalf("创建失败：%d %v", resp0.StatusCode, m0)
 	}
 
 	// 改小参数并禁用 CORS *
-	resp, m := e.do(t, http.MethodPost, "/admin/sites/cfg", map[string]any{
+	resp, m := e.do(t, http.MethodPost, "/admin/api/sites/cfg", map[string]any{
 		"challenge_count": 2, "challenge_size": 8, "challenge_difficulty": 2,
 		"cors_allow_all": false, "cors_origins": []string{"https://only.example.com"},
 	}, e.auth(csrfTok, cookie))
@@ -327,20 +327,20 @@ func TestSiteUpdateAndPublicBehavior(t *testing.T) {
 	}
 
 	// 非法参数拒绝
-	resp, m = e.do(t, http.MethodPost, "/admin/sites/cfg", map[string]any{"challenge_difficulty": 99}, e.auth(csrfTok, cookie))
+	resp, m = e.do(t, http.MethodPost, "/admin/api/sites/cfg", map[string]any{"challenge_difficulty": 99}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 400 {
 		t.Fatalf("非法难度应 400：%d %v", resp.StatusCode, m)
 	}
 
 	// 禁用站点 → 公开 404
-	_, _ = e.do(t, http.MethodPost, "/admin/sites/cfg", map[string]any{"enabled": false}, e.auth(csrfTok, cookie))
+	_, _ = e.do(t, http.MethodPost, "/admin/api/sites/cfg", map[string]any{"enabled": false}, e.auth(csrfTok, cookie))
 	chResp, _ = e.post("/cfg/challenge", nil)
 	if chResp.StatusCode != 404 {
 		t.Fatalf("禁用站点应 404：%d", chResp.StatusCode)
 	}
 
 	// slug 不可改
-	resp, _ = e.do(t, http.MethodPost, "/admin/sites/cfg", map[string]any{"slug": "new"}, e.auth(csrfTok, cookie))
+	resp, _ = e.do(t, http.MethodPost, "/admin/api/sites/cfg", map[string]any{"slug": "new"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 400 {
 		t.Fatalf("slug 修改应 400：%d", resp.StatusCode)
 	}
@@ -349,9 +349,9 @@ func TestSiteUpdateAndPublicBehavior(t *testing.T) {
 func TestSiteSoftDelete(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
-	e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "gone"}, e.auth(csrfTok, cookie))
+	e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "gone"}, e.auth(csrfTok, cookie))
 
-	resp, m := e.do(t, http.MethodDelete, "/admin/sites/gone", nil, e.auth(csrfTok, cookie))
+	resp, m := e.do(t, http.MethodDelete, "/admin/api/sites/gone", nil, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 200 {
 		t.Fatalf("删除失败：%d %v", resp.StatusCode, m)
 	}
@@ -359,7 +359,7 @@ func TestSiteSoftDelete(t *testing.T) {
 	if r, _ := e.post("/gone/challenge", nil); r.StatusCode != 404 {
 		t.Error("软删除后公开应 404")
 	}
-	resp, _ = e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "gone"}, e.auth(csrfTok, cookie))
+	resp, _ = e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "gone"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 409 {
 		t.Errorf("软删除占位下重建应 409：%d", resp.StatusCode)
 	}
@@ -368,11 +368,11 @@ func TestSiteSoftDelete(t *testing.T) {
 func TestRevealRequiresReAuth(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
-	_, m := e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "sec"}, e.auth(csrfTok, cookie))
+	_, m := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "sec"}, e.auth(csrfTok, cookie))
 	secret := m["secret"].(string)
 
 	// 错误 admin key → 401，且不泄露 secret
-	resp, m := e.do(t, http.MethodPost, "/admin/sites/sec/reveal", map[string]string{"key": "wrong"}, e.auth(csrfTok, cookie))
+	resp, m := e.do(t, http.MethodPost, "/admin/api/sites/sec/reveal", map[string]string{"key": "wrong"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 401 {
 		t.Fatalf("re-auth 失败应 401：%d", resp.StatusCode)
 	}
@@ -381,7 +381,7 @@ func TestRevealRequiresReAuth(t *testing.T) {
 	}
 
 	// 正确 key → 与创建时一致的 secret
-	resp, m = e.do(t, http.MethodPost, "/admin/sites/sec/reveal", map[string]string{"key": "admin-key-high-entropy-12345"}, e.auth(csrfTok, cookie))
+	resp, m = e.do(t, http.MethodPost, "/admin/api/sites/sec/reveal", map[string]string{"key": "admin-key-high-entropy-12345"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 200 || m["secret"].(string) != secret {
 		t.Fatalf("reveal 结果不一致：%v", m)
 	}
@@ -390,10 +390,10 @@ func TestRevealRequiresReAuth(t *testing.T) {
 func TestRotateSecret(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
-	_, m := e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "rot"}, e.auth(csrfTok, cookie))
+	_, m := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "rot"}, e.auth(csrfTok, cookie))
 	oldSecret := m["secret"].(string)
 
-	resp, m := e.do(t, http.MethodPost, "/admin/sites/rot/rotate", map[string]string{"key": "admin-key-high-entropy-12345"}, e.auth(csrfTok, cookie))
+	resp, m := e.do(t, http.MethodPost, "/admin/api/sites/rot/rotate", map[string]string{"key": "admin-key-high-entropy-12345"}, e.auth(csrfTok, cookie))
 	if resp.StatusCode != 200 {
 		t.Fatalf("rotate 失败：%d %v", resp.StatusCode, m)
 	}
@@ -421,7 +421,7 @@ func TestRotateSecret(t *testing.T) {
 func TestEventsAndStats(t *testing.T) {
 	e := newEnv(t, nil)
 	csrfTok, cookie := e.login(t)
-	_, m0 := e.do(t, http.MethodPost, "/admin/sites", map[string]any{"slug": "st"}, e.auth(csrfTok, cookie))
+	_, m0 := e.do(t, http.MethodPost, "/admin/api/sites", map[string]any{"slug": "st"}, e.auth(csrfTok, cookie))
 	if m0["secret"] == nil {
 		t.Fatal("创建失败")
 	}
@@ -438,7 +438,7 @@ func TestEventsAndStats(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, m := e.do(t, http.MethodGet, "/admin/events?limit=10&site=st", nil, e.auth("", cookie))
+	resp, m := e.do(t, http.MethodGet, "/admin/api/events?limit=10&site=st", nil, e.auth("", cookie))
 	if resp.StatusCode != 200 {
 		t.Fatalf("events 查询失败：%d %v", resp.StatusCode, m)
 	}
@@ -451,7 +451,7 @@ func TestEventsAndStats(t *testing.T) {
 		// 倒序：第一条应为最新插入
 	}
 
-	resp, m = e.do(t, http.MethodGet, "/admin/stats?days=7", nil, e.auth("", cookie))
+	resp, m = e.do(t, http.MethodGet, "/admin/api/stats?days=7", nil, e.auth("", cookie))
 	if resp.StatusCode != 200 {
 		t.Fatalf("stats 查询失败：%d %v", resp.StatusCode, m)
 	}
@@ -473,7 +473,7 @@ func TestSessionExpiry(t *testing.T) {
 	csrfTok, cookie := e.login(t)
 	// 推进时钟越过 12h
 	atomic.StoreInt64(&e.now, 1_000_000+13*60*60*1000)
-	resp, _ := e.do(t, http.MethodGet, "/admin/session", nil, e.auth("", cookie))
+	resp, _ := e.do(t, http.MethodGet, "/admin/api/session", nil, e.auth("", cookie))
 	if resp.StatusCode != 401 {
 		t.Fatalf("会话过期应 401：%d", resp.StatusCode)
 	}
@@ -500,4 +500,46 @@ func (e *adminEnv) post(path string, body any) (*http.Response, map[string]any) 
 	var m map[string]any
 	_ = json.Unmarshal(raw, &m)
 	return resp, m
+}
+
+// TestEventStreamFlushes 验证 SSE：首帧 hello + Flush 生效。
+func TestEventStreamFlushes(t *testing.T) {
+	e := newEnv(t, nil)
+	_, cookie := e.login(t)
+
+	req, _ := http.NewRequest(http.MethodGet, e.srv.URL+"/admin/api/events/stream", nil)
+	req.Header.Set("Cookie", cookie)
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("SSE 状态：%d", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "text/event-stream" {
+		t.Errorf("Content-Type：%q", ct)
+	}
+	if resp.Header.Get("X-Accel-Buffering") != "no" {
+		t.Error("应有 X-Accel-Buffering: no（反代不缓冲）")
+	}
+	buf := make([]byte, 256)
+	n, _ := resp.Body.Read(buf)
+	first := string(buf[:n])
+	if !strings.Contains(first, "event: hello") {
+		t.Errorf("首帧应为 hello：%q", first)
+	}
+}
+
+// TestEventStreamRequiresAuth 未登录不可订阅。
+func TestEventStreamRequiresAuth(t *testing.T) {
+	e := newEnv(t, nil)
+	resp, err := http.Get(e.srv.URL + "/admin/api/events/stream")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("未登录应 401，得到 %d", resp.StatusCode)
+	}
 }

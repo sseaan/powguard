@@ -1,0 +1,119 @@
+{{define "sites.html"}}
+<h1>站点</h1>
+<div id="alert" class="alert"></div>
+
+<div class="panel">
+  <h3 style="margin-top:0">新建站点</h3>
+  <form id="create-form" class="grid cols-4">
+    <div>
+      <label for="c-slug">slug</label>
+      <input id="c-slug" type="text" placeholder="twikoo" required pattern="[a-z0-9_-]{1,32}">
+      <div class="hint">小写字母、数字、- 或 _，1–32 位；创建后不可改</div>
+    </div>
+    <div>
+      <label for="c-name">名称</label>
+      <input id="c-name" type="text" placeholder="博客评论">
+    </div>
+    <div>
+      <label for="c-protocol">协议</label>
+      <select id="c-protocol">
+        <option value="format1" selected>format-1（Twikoo 兼容，推荐）</option>
+        <option value="format2">format-2 SHA-256（无状态 JWT）</option>
+      </select>
+    </div>
+    <div class="row" style="align-items:flex-end">
+      <button class="primary" type="submit">创建</button>
+    </div>
+  </form>
+</div>
+
+<h2>全部站点</h2>
+<div class="panel">
+  <table>
+    <thead><tr><th>slug</th><th>名称</th><th>协议</th><th>挑战参数</th><th>状态</th><th></th></tr></thead>
+    <tbody id="site-rows"></tbody>
+  </table>
+</div>
+
+<div id="secret-modal" class="panel" style="display:none;margin-top:1rem">
+  <h3 style="margin-top:0">站点 secret（仅显示一次）</h3>
+  <p class="muted">请立即复制到 Twikoo 的 <code>CAP_SECRET_KEY</code>；关掉后将无法再次查看（可用「显示」重新获取）。</p>
+  <pre><code id="secret-value"></code></pre>
+  <div class="row end"><button id="secret-close">我已保存</button></div>
+</div>
+
+<script type="module">
+  import { api, el, showAlert, badge, protocolBadge, confirmAction, mountNav, ensureCSRF } from "/static/app.js";
+  ensureCSRF();
+  mountNav("sites");
+
+  async function load() {
+    try {
+      const data = await api("GET", "/admin/api/sites");
+      const tbody = el("#site-rows");
+      tbody.innerHTML = "";
+      if (!data.sites.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">还没有站点，先在上面创建一个</td></tr>';
+        return;
+      }
+      for (const s of data.sites) {
+        const tr = document.createElement("tr");
+        const link = document.createElement("a");
+        link.href = `/admin/sites/${s.slug}`;
+        link.textContent = s.slug;
+        tr.append(
+          (() => { const td = document.createElement("td"); td.append(link); return td; })(),
+          (() => { const td = document.createElement("td"); td.textContent = s.name || "—"; return td; })(),
+          (() => { const td = document.createElement("td"); td.append(protocolBadge(s.protocol)); return td; })(),
+          (() => { const td = document.createElement("td"); td.className = "mono muted";
+                   td.textContent = `c${s.challenge_count} s${s.challenge_size} d${s.challenge_difficulty}`; return td; })(),
+          (() => { const td = document.createElement("td"); td.append(badge(s.enabled ? "启用" : "停用", s.enabled ? "ok" : "fail")); return td; })(),
+          (() => {
+            const td = document.createElement("td");
+            const del = document.createElement("button");
+            del.className = "danger";
+            del.textContent = "删除";
+            del.addEventListener("click", async () => {
+              if (!confirmAction(`软删除站点 ${s.slug}？旧 token 与事件仍保留审计。`)) return;
+              try {
+                await api("DELETE", `/admin/api/sites/${s.slug}`);
+                load();
+              } catch (e) { showAlert(el("#alert"), e.message); }
+            });
+            td.append(del);
+            return td;
+          })(),
+        );
+        tbody.append(tr);
+      }
+    } catch (e) {
+      showAlert(el("#alert"), e.message || String(e));
+    }
+  }
+
+  el("#create-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = {
+      slug: el("#c-slug").value.trim(),
+      name: el("#c-name").value.trim(),
+      protocol: el("#c-protocol").value,
+    };
+    try {
+      const data = await api("POST", "/admin/api/sites", body);
+      el("#secret-value").textContent = data.secret;
+      el("#secret-modal").style.display = "block";
+      el("#c-slug").value = ""; el("#c-name").value = "";
+      load();
+    } catch (err) {
+      showAlert(el("#alert"), err.message);
+    }
+  });
+
+  el("#secret-close").addEventListener("click", () => {
+    el("#secret-modal").style.display = "none";
+    el("#secret-value").textContent = "";
+  });
+
+  load();
+</script>
+{{end}}

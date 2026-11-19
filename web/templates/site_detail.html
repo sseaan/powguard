@@ -1,0 +1,247 @@
+{{define "site_detail.html"}}
+<h1 id="site-title">站点</h1>
+<div id="alert" class="alert"></div>
+
+<div class="tabs">
+  <button data-tab="config" class="active">协议配置</button>
+  <button data-tab="integration">集成</button>
+  <button data-tab="secret">密钥</button>
+</div>
+
+<section id="tab-config">
+  <div class="panel">
+    <form id="config-form">
+      <div class="grid cols-2">
+        <div>
+          <label for="f-name">名称</label>
+          <input id="f-name" type="text">
+        </div>
+        <div>
+          <label for="f-protocol">协议</label>
+          <select id="f-protocol">
+            <option value="format1">format-1（Twikoo 兼容）</option>
+            <option value="format2">format-2 SHA-256（无状态 JWT）</option>
+          </select>
+          <div class="hint">HashWX、RSW、instrumentation 未实现，不在此列出。</div>
+        </div>
+      </div>
+
+      <h3>工作量证明参数</h3>
+      <div class="grid cols-3">
+        <div>
+          <label for="f-count">挑战数量 c</label>
+          <input id="f-count" type="number" min="1" max="1000">
+          <div class="hint">默认 50；越大越慢越贵</div>
+        </div>
+        <div>
+          <label for="f-size">盐长度 s</label>
+          <input id="f-size" type="number" min="1" max="256">
+          <div class="hint">默认 32（hex 字符）</div>
+        </div>
+        <div>
+          <label for="f-difficulty">难度 d</label>
+          <input id="f-difficulty" type="number" min="1" max="16">
+          <div class="hint">默认 4；每 +1 约翻 16 倍 CPU</div>
+        </div>
+      </div>
+
+      <h3>有效期</h3>
+      <div class="grid cols-3">
+        <div>
+          <label for="f-challenge-ttl">挑战 TTL（分钟）</label>
+          <input id="f-challenge-ttl" type="number" min="1" max="1440">
+        </div>
+        <div>
+          <label for="f-token-ttl">通行 token TTL（分钟）</label>
+          <input id="f-token-ttl" type="number" min="1" max="1440">
+        </div>
+        <div>
+          <label for="f-enabled">状态</label>
+          <label style="color:var(--fg)"><input id="f-enabled" type="checkbox"> 启用站点</label>
+        </div>
+      </div>
+
+      <h3>限流</h3>
+      <div class="grid cols-3">
+        <div>
+          <label for="f-rl-count">每窗口请求数</label>
+          <input id="f-rl-count" type="number" min="1" max="10000">
+        </div>
+        <div>
+          <label for="f-rl-window">窗口（毫秒）</label>
+          <input id="f-rl-window" type="number" min="1000" max="3600000">
+        </div>
+      </div>
+
+      <h3>CORS</h3>
+      <label style="color:var(--fg)"><input id="f-cors-all" type="checkbox"> 允许任意来源（<code>*</code>）</label>
+      <label for="f-cors-origins">来源白名单（每行一个；<code>*</code> 关闭时生效）</label>
+      <textarea id="f-cors-origins" rows="3" placeholder="https://blog.example.com"></textarea>
+
+      <div class="row end" style="margin-top:1.25rem">
+        <button class="primary" type="submit">保存配置</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section id="tab-integration" style="display:none">
+  <div class="panel">
+    <h3 style="margin-top:0">Endpoint</h3>
+    <pre><code id="i-endpoint"></code></pre>
+    <p class="hint">widget 会向 <code>{endpoint}challenge</code> 与 <code>{endpoint}redeem</code> 发请求。</p>
+
+    <h3>Twikoo 2.0.17（外接模式）</h3>
+    <pre><code id="i-twikoo"></code></pre>
+
+    <h3>通用 HTML 片段</h3>
+    <pre><code id="i-html"></code></pre>
+
+    <h3>同源静态资产（避免 jsDelivr，大陆可用）</h3>
+    <pre><code id="i-assets"></code></pre>
+  </div>
+</section>
+
+<section id="tab-secret" style="display:none">
+  <div class="panel">
+    <h3 style="margin-top:0">siteverify 密钥</h3>
+    <p class="muted">用于 Twikoo 的 <code>CAP_SECRET_KEY</code>。查看与轮换都需要再次输入 Admin Key。</p>
+    <pre><code id="secret-out">••••••••••••••••••••</code></pre>
+    <label for="f-reauth">再次输入 Admin Key（查看/轮换需要二次认证）</label>
+    <input id="f-reauth" type="password" autocomplete="off" placeholder="CAPGO_ADMIN_KEY">
+    <div class="row" style="margin-top:.75rem">
+      <button id="reveal-btn">显示 secret</button>
+      <button id="rotate-btn" class="danger">轮换 secret</button>
+    </div>
+
+    <h3>危险操作</h3>
+    <button id="delete-btn" class="danger">软删除此站点</button>
+  </div>
+</section>
+
+<script type="module">
+  import { api, apiReauth, el, showAlert, confirmAction, mountNav, ensureCSRF } from "/static/app.js";
+  ensureCSRF();
+  mountNav("sites");
+
+  const slug = location.pathname.split("/").filter(Boolean).pop();
+  let site = null;
+
+  async function loadSite() {
+    try {
+      site = await api("GET", `/admin/api/sites/${slug}`);
+      el("#site-title").textContent = `站点：${site.name || site.slug}`;
+      el("#f-name").value = site.name || "";
+      el("#f-protocol").value = site.protocol || "format1";
+      el("#f-count").value = site.challenge_count;
+      el("#f-size").value = site.challenge_size;
+      el("#f-difficulty").value = site.challenge_difficulty;
+      el("#f-challenge-ttl").value = Math.round(site.challenge_ttl_ms / 60000);
+      el("#f-token-ttl").value = Math.round(site.token_ttl_ms / 60000);
+      el("#f-enabled").checked = !!site.enabled;
+      el("#f-rl-count").value = site.rate_limit_per_window;
+      el("#f-rl-window").value = site.rate_limit_window_ms;
+      el("#f-cors-all").checked = !!site.cors_allow_all;
+      el("#f-cors-origins").value = (site.cors_origins || []).join("\n");
+      renderIntegration();
+    } catch (e) {
+      showAlert(el("#alert"), e.message || String(e));
+    }
+  }
+
+  function renderIntegration() {
+    const base = location.origin;
+    const ep = `${base}/${slug}/`;
+    el("#i-endpoint").textContent = ep;
+    el("#i-twikoo").textContent = [
+      `CAPTCHA_PROVIDER=Cap`,
+      `CAP_API_ENDPOINT=${ep}`,
+      `CAP_SECRET_KEY=<在「密钥」标签页获取>`,
+    ].join("\n");
+    el("#i-html").textContent = [
+      `<script src="${base}/static/vendor/cap.min.js"><\/script>`,
+      `<script>window.CAP_CUSTOM_WASM_URL = "${base}/static/vendor/cap_wasm_bg.wasm";<\/script>`,
+      ``,
+      `<cap-widget data-cap-api-endpoint="${ep}"></cap-widget>`,
+    ].join("\n");
+    el("#i-assets").textContent = [
+      `widget: ${base}/static/vendor/cap.min.js`,
+      `wasm:   ${base}/static/vendor/cap_wasm_bg.wasm`,
+      `css:    ${base}/static/vendor/cap.css`,
+    ].join("\n");
+  }
+
+  // tabs
+  document.querySelectorAll(".tabs button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      for (const id of ["config", "integration", "secret"]) {
+        el(`#tab-${id}`).style.display = id === btn.dataset.tab ? "block" : "none";
+      }
+    });
+  });
+
+  el("#config-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = {
+      name: el("#f-name").value.trim(),
+      protocol: el("#f-protocol").value,
+      challenge_count: Number(el("#f-count").value),
+      challenge_size: Number(el("#f-size").value),
+      challenge_difficulty: Number(el("#f-difficulty").value),
+      challenge_ttl_ms: Number(el("#f-challenge-ttl").value) * 60000,
+      token_ttl_ms: Number(el("#f-token-ttl").value) * 60000,
+      enabled: el("#f-enabled").checked,
+      rate_limit_per_window: Number(el("#f-rl-count").value),
+      rate_limit_window_ms: Number(el("#f-rl-window").value),
+      cors_allow_all: el("#f-cors-all").checked,
+      cors_origins: el("#f-cors-origins").value.split("\n").map(s => s.trim()).filter(Boolean),
+    };
+    try {
+      site = await api("POST", `/admin/api/sites/${slug}`, body);
+      showAlert(el("#alert"), "配置已保存并立即生效", "ok");
+    } catch (err) {
+      showAlert(el("#alert"), err.message);
+    }
+  });
+
+  async function reauthAndCall(path) {
+    const key = el("#f-reauth").value.trim();
+    if (!key) {
+      showAlert(el("#alert"), "请先填写 Admin Key 以完成二次认证");
+      return null;
+    }
+    try {
+      return await apiReauth("POST", path, key);
+    } catch (e) {
+      showAlert(el("#alert"), e.message);
+      return null;
+    }
+  }
+
+  el("#reveal-btn").addEventListener("click", async () => {
+    const data = await reauthAndCall(`/admin/api/sites/${slug}/reveal`);
+    if (data) el("#secret-out").textContent = data.secret;
+  });
+
+  el("#rotate-btn").addEventListener("click", async () => {
+    if (!confirmAction("轮换后旧 secret 立即失效，需同步更新 Twikoo 配置。继续？")) return;
+    const data = await reauthAndCall(`/admin/api/sites/${slug}/rotate`);
+    if (data) {
+      el("#secret-out").textContent = data.secret;
+      showAlert(el("#alert"), "已轮换，请立即更新 Twikoo 的 CAP_SECRET_KEY", "ok");
+    }
+  });
+
+  el("#delete-btn").addEventListener("click", async () => {
+    if (!confirmAction(`软删除 ${slug}？旧 token 与事件仍保留。`)) return;
+    try {
+      await api("DELETE", `/admin/api/sites/${slug}`);
+      location.href = "/admin/sites";
+    } catch (e) { showAlert(el("#alert"), e.message); }
+  });
+
+  loadSite();
+</script>
+{{end}}

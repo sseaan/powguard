@@ -181,13 +181,13 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
+	cookieSecure := strings.HasPrefix(publicURL, "https://")
+	if v := os.Getenv("CAPGO_COOKIE_SECURE"); v != "" {
+		cookieSecure, _ = strconv.ParseBool(v)
+	}
 	adminEnabled := false
 	if adminKey := os.Getenv("CAPGO_ADMIN_KEY"); adminKey != "" {
 		adminEnabled = true
-		cookieSecure := strings.HasPrefix(publicURL, "https://")
-		if v := os.Getenv("CAPGO_COOKIE_SECURE"); v != "" {
-			cookieSecure, _ = strconv.ParseBool(v)
-		}
 		adm := &admin.Handler{
 			AdminKey:     []byte(adminKey),
 			Sessions:     session.NewManager(sessionRepo, 0),
@@ -214,7 +214,19 @@ func main() {
 	if sites, err := siteRepo.List(); err == nil && len(sites) > 0 {
 		firstSlug = sites[0].Slug
 	}
-	web.RegisterStatic(mux, firstSlug)
+
+	assets := &web.Assets{
+		Sessions:     session.NewManager(sessionRepo, 0),
+		Box:          box,
+		Sites:        siteRepo,
+		FirstSlug:    firstSlug,
+		AdminEnabled: adminEnabled,
+		CookieSecure: cookieSecure,
+	}
+	if err := assets.Register(mux); err != nil {
+		logger.Error("web register failed", "err", err)
+		os.Exit(1)
+	}
 
 	root := middleware.Chain(mux,
 		middleware.Recover(logger),

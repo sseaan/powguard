@@ -112,12 +112,14 @@ func TestCorruptedCiphertext(t *testing.T) {
 		fn   func(string) string
 	}{
 		{"截断", func(s string) string { return s[:len(s)-2] }},
-		{"篡改末字符", func(s string) string {
-			last := s[len(s)-1]
-			if last == 'A' {
-				return s[:len(s)-1] + "B"
+		{"翻转中间字符", func(s string) string {
+			// 解码后翻转一个字节再编码，避免 base64 末尾位的无关位导致 flake
+			raw, err := b64.DecodeString(s)
+			if err != nil {
+				return s
 			}
-			return s[:len(s)-1] + "A"
+			raw[len(raw)/2] ^= 0xff
+			return b64.EncodeToString(raw)
 		}},
 		{"非法 base64", func(s string) string { return "!!!not-base64!!!" }},
 	} {

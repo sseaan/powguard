@@ -1,0 +1,61 @@
+{{define "settings.html"}}
+<h1>实例设置</h1>
+<div id="alert" class="alert"></div>
+
+<div class="grid cols-2">
+  <div class="panel">
+    <h3 style="margin-top:0">运行时信息</h3>
+    <dl class="kv">
+      <dt>公开 URL</dt><dd id="i-public" class="mono">—</dd>
+      <dt>协议支持</dt><dd>format-1（Twikoo）· format-2 SHA-256</dd>
+      <dt>明确未实现</dt><dd class="muted">HashWX · RSW · instrumentation · 规则引擎</dd>
+      <dt>事件保留</dt><dd id="i-retention">—</dd>
+    </dl>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0">部署检查</h3>
+    <ul class="muted" style="margin:0;padding-left:1.1rem">
+      <li><code>CAPGO_MASTER_KEY</code> 与 SQLite 必须成对备份</li>
+      <li>反代后设置 <code>CAPGO_TRUST_PROXY</code>，否则限流按反代 IP 计数</li>
+      <li>HTTPS 部署时 cookie 自动 Secure（由 <code>CAPGO_PUBLIC_URL</code> 判定）</li>
+      <li>widget/WASM 为同源自托管，无 jsDelivr 依赖</li>
+    </ul>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:1rem">
+  <h3 style="margin-top:0">存储统计</h3>
+  <dl class="kv">
+    <dt>站点</dt><dd id="i-sites">—</dd>
+    <dt>事件总数</dt><dd id="i-events">—</dd>
+    <dt>站点协议分布</dt><dd id="i-protocols">—</dd>
+  </dl>
+</div>
+
+<script type="module">
+  import { api, el, showAlert, mountNav, ensureCSRF } from "/static/app.js";
+  ensureCSRF();
+  mountNav("settings");
+
+  async function load() {
+    el("#i-public").textContent = location.origin;
+    try {
+      const data = await api("GET", "/admin/api/sites");
+      el("#i-sites").textContent = data.sites.length;
+      const dist = { format1: 0, format2: 0 };
+      for (const s of data.sites) dist[s.protocol || "format1"]++;
+      el("#i-protocols").textContent = `format-1 × ${dist.format1} · format-2 × ${dist.format2}`;
+    } catch (e) {
+      showAlert(el("#alert"), e.message);
+    }
+    try {
+      const stats = await api("GET", "/admin/api/stats?days=7");
+      const total = (stats.daily || []).reduce((a, d) => a + d.count, 0);
+      el("#i-events").textContent = `近 7 天 ${total} 条`;
+    } catch {}
+    el("#i-retention").textContent = "默认 30 天（服务端 CAPGO 配置，到期自动清理）";
+  }
+  load();
+</script>
+{{end}}

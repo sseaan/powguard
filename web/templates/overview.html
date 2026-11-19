@@ -1,0 +1,131 @@
+{{define "overview.html"}}
+<h1>概览</h1>
+<div id="alert" class="alert"></div>
+
+<div class="grid cols-4" id="stats-cards">
+  <div class="stat"><div class="label">站点数</div><div class="value" id="s-sites">—</div></div>
+  <div class="stat"><div class="label">今日挑战</div><div class="value" id="s-challenge">—</div><div class="sub" id="s-challenge-sub"></div></div>
+  <div class="stat"><div class="label">今日兑换</div><div class="value" id="s-redeem">—</div><div class="sub" id="s-redeem-sub"></div></div>
+  <div class="stat"><div class="label">成功率</div><div class="value" id="s-rate">—</div></div>
+</div>
+
+<h2>最近 7 天</h2>
+<div class="panel">
+  <div class="chart" id="chart"></div>
+  <div class="chart-labels" id="chart-labels"></div>
+  <div class="hint">柱高 = 当日 challenge 总量；红色部分 = fail/blocked/limit。</div>
+</div>
+
+<div class="grid cols-2" style="margin-top:1rem">
+  <div class="panel">
+    <h3 style="margin-top:0">失败原因（7 天）</h3>
+    <table><tbody id="reasons"></tbody></table>
+  </div>
+  <div class="panel">
+    <h3 style="margin-top:0">站点</h3>
+    <table>
+      <thead><tr><th>slug</th><th>协议</th><th>状态</th></tr></thead>
+      <tbody id="site-list"></tbody>
+    </table>
+    <div class="row end" style="margin-top:.75rem"><a class="btn" href="/admin/sites">管理站点</a></div>
+  </div>
+</div>
+
+<script type="module">
+  import { api, el, showAlert, badge, protocolBadge, mountNav, ensureCSRF } from "/static/app.js";
+  ensureCSRF();
+  mountNav("overview");
+
+  async function load() {
+    try {
+      const [sites, stats, chalStats] = await Promise.all([
+        api("GET", "/admin/api/sites"),
+        api("GET", "/admin/api/stats?days=7"),
+        api("GET", "/admin/api/stats?days=1&type=challenge"),
+      ]);
+      el("#s-sites").textContent = (sites.sites || []).length;
+
+      const today = (chalStats.daily || [])[0] || { count: 0, pass: 0, fail: 0 };
+      el("#s-challenge").textContent = today.count;
+      el("#s-challenge-sub").textContent = `pass ${today.pass ?? 0} · fail ${today.fail ?? 0}`;
+
+      const redeemStats = await api("GET", "/admin/api/stats?days=1&type=redeem");
+      const rToday = (redeemStats.daily || [])[0] || { count: 0, pass: 0, fail: 0 };
+      el("#s-redeem").textContent = rToday.count;
+      el("#s-redeem-sub").textContent = `pass ${rToday.pass ?? 0} · fail ${rToday.fail ?? 0}`;
+
+      const rate = rToday.count > 0 ? Math.round((rToday.pass / rToday.count) * 100) : null;
+      el("#s-rate").textContent = rate === null ? "—" : `${rate}%`;
+
+      renderChart(stats.daily || []);
+      renderReasons(stats.reasons || {});
+      renderSites(sites.sites || []);
+    } catch (e) {
+      showAlert(el("#alert"), e.message || String(e));
+    }
+  }
+
+  function renderChart(daily) {
+    const chart = el("#chart"), labels = el("#chart-labels");
+    chart.innerHTML = ""; labels.innerHTML = "";
+    if (!daily.length) {
+      chart.innerHTML = '<div class="empty" style="width:100%">暂无事件</div>';
+      return;
+    }
+    const max = Math.max(...daily.map(d => d.count), 1);
+    for (const d of daily) {
+      const hPct = (d.count / max) * 100;
+      const badPct = d.count > 0 ? ((d.fail + d.blocked + d.limit) / d.count) * 100 : 0;
+      const wrap = document.createElement("div");
+      wrap.className = "bar-wrap";
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      bar.style.height = `${hPct}%`;
+      bar.title = `${d.day}: ${d.count} 条（pass ${d.pass} / fail ${d.fail}）`;
+      if (badPct > 0) bar.style.background = `linear-gradient(to top, var(--danger) 0 ${badPct}%, var(--accent) ${badPct}% 100%)`;
+      wrap.append(bar);
+      chart.append(wrap);
+      const lab = document.createElement("div");
+      lab.textContent = d.day.slice(5);
+      labels.append(lab);
+    }
+  }
+
+  function renderReasons(reasons) {
+    const tbody = el("#reasons");
+    tbody.innerHTML = "";
+    const entries = Object.entries(reasons);
+    if (!entries.length) {
+      tbody.innerHTML = '<tr><td class="empty">7 天内没有失败</td></tr>';
+      return;
+    }
+    for (const [reason, n] of entries) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="mono">${reason || "(空)"}</td><td class="num right">${n}</td>`;
+      tbody.append(tr);
+    }
+  }
+
+  function renderSites(sites) {
+    const tbody = el("#site-list");
+    tbody.innerHTML = "";
+    if (!sites.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="empty">还没有站点</td></tr>';
+      return;
+    }
+    for (const s of sites) {
+      const tr = document.createElement("tr");
+      const a = document.createElement("a");
+      a.href = `/admin/sites/${s.slug}`;
+      a.textContent = s.slug;
+      const td0 = document.createElement("td"); td0.append(a);
+      const td1 = document.createElement("td"); td1.append(protocolBadge(s.protocol));
+      const td2 = document.createElement("td"); td2.append(badge(s.enabled ? "启用" : "停用", s.enabled ? "ok" : "fail"));
+      tr.append(td0, td1, td2);
+      tbody.append(tr);
+    }
+  }
+
+  load();
+</script>
+{{end}}

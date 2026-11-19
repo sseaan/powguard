@@ -1,0 +1,47 @@
+{{define "login.html"}}
+<div class="login-wrap">
+  <h1>cap<span style="color:var(--accent)">go</span></h1>
+  <p class="muted" style="text-align:center">Cap PoW 人机验证 · 管理面板</p>
+  <div class="panel">
+    <form id="login-form">
+      <label for="key">Admin Key</label>
+      <input id="key" type="password" autocomplete="current-password" required autofocus>
+      <div class="hint">即服务端配置的 CAPGO_ADMIN_KEY；登录后 12 小时有效。</div>
+      <div id="alert" class="alert"></div>
+      <div class="row end" style="margin-top:1rem">
+        <button class="primary" type="submit">登录</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script type="module">
+  import { setCSRF, showAlert, el } from "/static/app.js";
+  const form = el("#login-form");
+  const alertBox = el("#alert");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    alertBox.className = "alert";
+    const btn = form.querySelector("button");
+    btn.disabled = true;
+    try {
+      const resp = await fetch("/admin/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ key: el("#key").value }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        showAlert(alertBox, data.error || "登录失败");
+        return;
+      }
+      setCSRF(data.csrf);
+      location.href = "/admin";
+    } catch (err) {
+      showAlert(alertBox, String(err));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+{{end}}

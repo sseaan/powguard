@@ -76,18 +76,19 @@ func (h *Handler) Register(mux *http.ServeMux) error {
 	if len(h.AdminKey) == 0 {
 		return nil // 管理面板禁用
 	}
-	mux.HandleFunc("POST /admin/login", h.handleLogin)
-	mux.Handle("POST /admin/logout", h.requireSession(h.handleLogout))
-	mux.Handle("GET /admin/session", h.requireSession(h.handleWhoami))
-	mux.Handle("GET /admin/sites", h.requireSession(h.handleSiteList))
-	mux.Handle("POST /admin/sites", h.requireSession(h.handleSiteCreate))
-	mux.Handle("GET /admin/sites/{slug}", h.requireSession(h.handleSiteGet))
-	mux.Handle("POST /admin/sites/{slug}", h.requireSession(h.handleSiteUpdate))
-	mux.Handle("DELETE /admin/sites/{slug}", h.requireSession(h.handleSiteDelete))
-	mux.Handle("POST /admin/sites/{slug}/reveal", h.requireSession(h.handleSiteReveal))
-	mux.Handle("POST /admin/sites/{slug}/rotate", h.requireSession(h.handleSiteRotate))
-	mux.Handle("GET /admin/events", h.requireSession(h.handleEvents))
-	mux.Handle("GET /admin/stats", h.requireSession(h.handleStats))
+	mux.HandleFunc("POST /admin/api/login", h.handleLogin)
+	mux.Handle("POST /admin/api/logout", h.requireSession(h.handleLogout))
+	mux.Handle("GET /admin/api/session", h.requireSession(h.handleWhoami))
+	mux.Handle("GET /admin/api/sites", h.requireSession(h.handleSiteList))
+	mux.Handle("POST /admin/api/sites", h.requireSession(h.handleSiteCreate))
+	mux.Handle("GET /admin/api/sites/{slug}", h.requireSession(h.handleSiteGet))
+	mux.Handle("POST /admin/api/sites/{slug}", h.requireSession(h.handleSiteUpdate))
+	mux.Handle("DELETE /admin/api/sites/{slug}", h.requireSession(h.handleSiteDelete))
+	mux.Handle("POST /admin/api/sites/{slug}/reveal", h.requireSession(h.handleSiteReveal))
+	mux.Handle("POST /admin/api/sites/{slug}/rotate", h.requireSession(h.handleSiteRotate))
+	mux.Handle("GET /admin/api/events", h.requireSession(h.handleEvents))
+	mux.Handle("GET /admin/api/stats", h.requireSession(h.handleStats))
+	mux.Handle("GET /admin/api/events/stream", h.requireSession(h.handleEventStream))
 	return nil
 }
 
@@ -201,13 +202,18 @@ func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request, _ string)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
-func (h *Handler) handleWhoami(w http.ResponseWriter, r *http.Request, _ string) {
+func (h *Handler) handleWhoami(w http.ResponseWriter, r *http.Request, tokenHash string) {
 	_, expiresAt, err := h.Sessions.Valid(readSessionCookie(r), h.now())
 	if err != nil || expiresAt == 0 {
 		writeErr(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"authenticated": true, "expires": expiresAt})
+	// 同时下发 CSRF token：新标签页（sessionStorage 为空）可据此恢复写能力。
+	writeJSON(w, http.StatusOK, map[string]any{
+		"authenticated": true,
+		"expires":       expiresAt,
+		"csrf":          csrf.Token(h.Box.DeriveCSRFKey(), tokenHash),
+	})
 }
 
 // ---------------------------------------------------------------- 站点 CRUD

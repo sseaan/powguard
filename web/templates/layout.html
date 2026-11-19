@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · capgo</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+{{if .Authed}}
+<header class="topbar">
+  <div class="brand">cap<span>go</span></div>
+  <nav>
+    <a href="/admin" data-nav="overview">概览</a>
+    <a href="/admin/sites" data-nav="sites">站点</a>
+    <a href="/admin/events" data-nav="events">事件</a>
+    <a href="/admin/settings" data-nav="settings">实例设置</a>
+  </nav>
+  <div class="spacer"></div>
+  <a href="/" target="_blank" rel="noreferrer" class="muted">验证演示页 ↗</a>
+  <button id="logout-btn" class="muted">退出</button>
+</header>
+{{end}}
+<main>
+{{if eq .Content "login.html"}}{{template "login.html" .}}
+{{else if eq .Content "overview.html"}}{{template "overview.html" .}}
+{{else if eq .Content "sites.html"}}{{template "sites.html" .}}
+{{else if eq .Content "site_detail.html"}}{{template "site_detail.html" .}}
+{{else if eq .Content "events.html"}}{{template "events.html" .}}
+{{else if eq .Content "settings.html"}}{{template "settings.html" .}}
+{{end}}
+</main>
+{{if .Authed}}<script type="module">
+  import { api, setCSRF } from "/static/app.js";
+  document.getElementById("logout-btn")?.addEventListener("click", async () => {
+    try { await api("POST", "/admin/api/logout"); } catch {}
+    setCSRF("");
+    location.href = "/admin/login";
+  });
+</script>{{end}}
+</body>
+</html>
