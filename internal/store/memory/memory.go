@@ -102,6 +102,18 @@ func (s *TokenStore) Consume(key string, nowMs int64) TokenStatus {
 	return TokenConsumed
 }
 
+// TryClaim 原子占位：key 不存在（或已过期）则写入并返回 true；
+// 已被占位且未过期返回 false。占位者持有到期为止（nonce 一次性语义，区别于 Consume）。
+func (s *TokenStore) TryClaim(key string, nowMs, expiresAt int64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if exp, ok := s.m[key]; ok && exp >= nowMs {
+		return false
+	}
+	s.m[key] = expiresAt
+	return true
+}
+
 // Peek 只读检查（keepToken 语义 / 测试）。
 func (s *TokenStore) Peek(key string, nowMs int64) bool {
 	s.mu.Lock()

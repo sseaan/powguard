@@ -36,9 +36,12 @@
 
 | 项 | 状态 | 计划 |
 |---|---|---|
-| 未修改 widget 0.1.63 真实浏览器 e2e | ✅ Chromium 实测通过（同源 WASM） | M1 已验：挑战→求解→redeem→siteverify→重放拒绝全链路 |
+| format-2 sha256-pow（官方 capjs-core 签发 → Go 校验） | ✅ | `testdata/format2/cases.json` `sha256_lifecycle` |
+| format-2 sha256-pow（Go 签发 → capjs-core validateChallenge） | ✅ | `internal/protocol/format2/format2_test.go` → `verify-go.mjs mode=format2` |
+| format-2 公开端点接入（challenge envelope / 统一 redeem / nonce 一次性） | ✅ P3 完成 | `internal/api/public/handler_format2_test.go`；浏览器 e2e（Chromium + widget 0.1.63）format-1 与 format-2 均已验证 |
+| 未修改 widget 0.1.63 真实浏览器 e2e | ✅ Chromium 实测通过（同源 WASM） | M1 已验：挑战→求解→redeem→siteverify→重放拒绝全链路；M3 补齐 format-2 同链路 |
 | Twikoo 2.0.17 外接模式端到端 | ✅ 调用形状已验 | 实例化真实 Twikoo 部署留待 M5（服务端调用形状已在 `TestTwikooExactCallShape` 逐字段复刻） |
-| format-2 双向 + scope + 浏览器 | Go 侧已双向 | M3 收口（含 hashwx 拒绝语义） |
+| format-2 双向 + scope + 浏览器 | ✅ | M3 收口（hashwx 拒绝语义：`ErrUnknownProtocol` + admin 非法协议 400） |
 | HashWX / RSW / instrumentation | 明确不实现 | 以后经 provider 接口另立项 |
 
 ## 风险清单（P0 视角）

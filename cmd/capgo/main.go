@@ -166,6 +166,7 @@ func main() {
 		Sites:      resolver,
 		Challenges: memory.NewChallengeStore(),
 		Tokens:     memory.NewTokenStore(),
+		Nonces:     memory.NewTokenStore(),
 		Limiter:    memory.NewRateLimiter(),
 		Clock:      func() int64 { return time.Now().UnixMilli() },
 		Logger:     logger,
@@ -240,6 +241,7 @@ func main() {
 				now := time.Now().UnixMilli()
 				pub.Challenges.DeleteExpired(now)
 				pub.Tokens.DeleteExpired(now)
+				pub.Nonces.DeleteExpired(now)
 				pub.Limiter.Cleanup(now, 10*60*1000)
 				session.NewManager(sessionRepo, 0).Cleanup(now)
 				retention := model.DefaultEventRetentionDays
@@ -283,10 +285,11 @@ func main() {
 	logger.Info("bye")
 }
 
-// bootstrapSite 建首站点并把 secret 加密入库。
+// bootstrapSite 建首站点并把 secret / signing key 加密入库。
 func bootstrapSite(sites *sqlite.SiteRepo, secrets *sqlite.SecretRepo, box *secretbox.Box, slug, secretPlain string) error {
 	m := &model.Site{
 		Slug:                slug,
+		Protocol:            policy.ProtocolFormat1,
 		Name:                slug,
 		Enabled:             true,
 		ChallengeCount:      format1.DefaultChallengeCount,
@@ -305,8 +308,23 @@ func bootstrapSite(sites *sqlite.SiteRepo, secrets *sqlite.SecretRepo, box *secr
 	if err != nil {
 		return err
 	}
-	return secrets.Put(&model.SiteSecret{
+	if err := secrets.Put(&model.SiteSecret{
 		SiteID: m.ID, Field: model.FieldSiteVerify,
 		Ciphertext: ciphertext, SchemaVersion: 1,
+	}); err != nil {
+		return err
+	}
+	// format-2 签名密钥（内部使用，永不外发）
+	signPlain, err := format1.RandomHex(32)
+	if err != nil {
+		return err
+	}
+	signCT, err := box.Seal([]byte(signPlain), m.Slug, model.FieldSigning)
+	if err != nil {
+		return err
+	}
+	return secrets.Put(&model.SiteSecret{
+		SiteID: m.ID, Field: model.FieldSigning,
+		Ciphertext: signCT, SchemaVersion: 1,
 	})
 }

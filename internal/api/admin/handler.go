@@ -215,6 +215,7 @@ func (h *Handler) handleWhoami(w http.ResponseWriter, r *http.Request, _ string)
 type sitePayload struct {
 	Slug                string   `json:"slug"`
 	Name                string   `json:"name"`
+	Protocol            *string  `json:"protocol"` // format1 | format2
 	Enabled             *bool    `json:"enabled"`
 	ChallengeCount      *int     `json:"challenge_count"`
 	ChallengeSize       *int     `json:"challenge_size"`
@@ -230,6 +231,7 @@ type sitePayload struct {
 func siteToJSON(m *model.Site) map[string]any {
 	return map[string]any{
 		"slug":                  m.Slug,
+		"protocol":              model.ProtocolOrDefault(m.Protocol),
 		"name":                  m.Name,
 		"enabled":               m.Enabled,
 		"challenge_count":       m.ChallengeCount,
@@ -249,6 +251,12 @@ func siteToJSON(m *model.Site) map[string]any {
 func applyPayload(m *model.Site, p sitePayload) error {
 	if p.Name != "" {
 		m.Name = p.Name
+	}
+	if p.Protocol != nil {
+		if !policy.ValidProtocol(*p.Protocol) {
+			return errors.New("protocol 仅支持 format1 / format2")
+		}
+		m.Protocol = *p.Protocol
 	}
 	if p.Enabled != nil {
 		m.Enabled = *p.Enabled
@@ -341,6 +349,7 @@ func (h *Handler) handleSiteCreate(w http.ResponseWriter, r *http.Request, _ str
 	}
 	m := &model.Site{
 		Slug:                p.Slug,
+		Protocol:            policy.ProtocolFormat1,
 		Name:                p.Name,
 		Enabled:             true,
 		ChallengeCount:      format1.DefaultChallengeCount,
@@ -379,9 +388,27 @@ func (h *Handler) handleSiteCreate(w http.ResponseWriter, r *http.Request, _ str
 		writeErr(w, http.StatusInternalServerError, "Failed to store secret")
 		return
 	}
+	// format-2 签名密钥（内部使用，永不外发）
+	signPlain, err := format1.RandomHex(32)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "Failed to generate signing key")
+		return
+	}
+	signCT, err := h.Box.Seal([]byte(signPlain), m.Slug, model.FieldSigning)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "Failed to encrypt signing key")
+		return
+	}
+	if err := h.Secrets.Put(&model.SiteSecret{
+		SiteID: m.ID, Field: model.FieldSigning,
+		Ciphertext: signCT, SchemaVersion: 1,
+	}); err != nil {
+		writeErr(w, http.StatusInternalServerError, "Failed to store signing key")
+		return
+	}
 
 	h.Resolver.Invalidate(m.Slug)
-	h.logger().Info("site_created", "slug", m.Slug)
+	h.logger().Info("site_created", "slug", m.Slug, "protocol", m.Protocol)
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"site":   siteToJSON(m),
 		"secret": secretPlain,

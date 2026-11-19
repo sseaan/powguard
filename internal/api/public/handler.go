@@ -24,6 +24,7 @@ import (
 	"capgo/internal/events"
 	"capgo/internal/policy"
 	"capgo/internal/protocol/format1"
+	"capgo/internal/protocol/format2"
 	"capgo/internal/store/memory"
 	"capgo/internal/store/model"
 )
@@ -36,7 +37,9 @@ type Handler struct {
 	Sites      policy.SiteResolver
 	Challenges *memory.ChallengeStore
 	Tokens     *memory.TokenStore
-	Limiter    *memory.RateLimiter
+	// Nonces 是 format-2 的一次性占位（JWT 签名 hex → 过期毫秒）。
+	Nonces  *memory.TokenStore
+	Limiter *memory.RateLimiter
 	// Clock 返回当前 Unix 毫秒；测试可注入。
 	Clock  func() int64
 	Logger *slog.Logger
@@ -163,15 +166,15 @@ func (h *Handler) applyCORS(w http.ResponseWriter, r *http.Request, site *policy
 	}
 }
 
-// rateLimited 执行 challenge/redeem 的每 IP 每站点限流。
-func (h *Handler) rateLimited(w http.ResponseWriter, r *http.Request, site *policy.Site) bool {
+// rateLimited 执行 challenge/redeem 的每 IP 每站点限流（typ 用于审计）。
+func (h *Handler) rateLimited(w http.ResponseWriter, r *http.Request, site *policy.Site, typ string) bool {
 	ip := h.clientIP(r)
 	key := site.Slug + "|" + ip
 	if !h.Limiter.Allow(key, site.RateLimitPerWindow, site.RateLimitWindowMs, h.now()) {
 		w.Header().Set("Retry-After", strconv.FormatInt(site.RateLimitWindowMs/1000+1, 10))
 		writeError(w, http.StatusTooManyRequests, "Too many requests")
 		h.logger().Warn("rate_limited", "site", site.Slug, "ip_digest", h.ipDigestOrEmpty(r))
-		h.emit(r, site.Slug, "challenge", "limit", "rate_limited", "format1", "", -1)
+		h.emit(r, site.Slug, typ, "limit", "rate_limited", site.Protocol, "", -1)
 		return true
 	}
 	return false
@@ -193,12 +196,16 @@ func (h *Handler) handleChallenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.applyCORS(w, r, site)
-	if h.rateLimited(w, r, site) {
+	if h.rateLimited(w, r, site, "challenge") {
 		return
 	}
 	// widget 在 WASM 不可用时携带 ?wasm=0（sha256-pow 场景下容忍并忽略）。
 	// 其余未知 query 参数同样忽略。
 
+	if site.Protocol == policy.ProtocolFormat2 {
+		h.handleChallengeV2(w, r, site, start)
+		return
+	}
 	token, err := format1.NewChallengeToken()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to generate challenge")
@@ -208,13 +215,41 @@ func (h *Handler) handleChallenge(w http.ResponseWriter, r *http.Request) {
 	expires := now + site.ChallengeTTL
 	h.Challenges.Put(token, format1.ChallengeData{Config: site.Challenge, Expires: expires})
 
-	h.logger().Info("challenge_issued", "site", site.Slug)
-	h.emit(r, site.Slug, "challenge", "pass", "", "format1", "", h.now()-start)
+	h.logger().Info("challenge_issued", "site", site.Slug, "protocol", site.Protocol)
+	h.emit(r, site.Slug, "challenge", "pass", "", site.Protocol, "", h.now()-start)
 	writeJSON(w, http.StatusOK, format1.ChallengeResponse{
 		Challenge: site.Challenge,
 		Token:     token,
 		Expires:   expires,
 	})
+}
+
+// handleChallengeV2 签发 format-2 envelope（protocols=[sha256-pow]，scope=slug）。
+func (h *Handler) handleChallengeV2(w http.ResponseWriter, r *http.Request, site *policy.Site, start int64) {
+	if site.SigningKey == "" {
+		// capd 语义：未配置 JWT 密钥的站点不能走 format-2
+		h.logger().Error("format2_no_signing_key", "site", site.Slug)
+		writeError(w, http.StatusInternalServerError, "Site key is not configured for JWT challenges")
+		return
+	}
+	resp, err := format2.Generate(format2.GenerateOptions{
+		Secret:     []byte(site.SigningKey),
+		Protocols:  []string{"sha256-pow"},
+		Count:      site.Challenge.Count,
+		Size:       site.Challenge.Size,
+		Difficulty: site.Challenge.Difficulty,
+		ExpiresMs:  site.ChallengeTTL,
+		Scope:      site.Slug,
+		NowMs:      h.now(),
+	})
+	if err != nil {
+		h.logger().Error("format2_generate_failed", "site", site.Slug, "err", err)
+		writeError(w, http.StatusInternalServerError, "Failed to generate challenge")
+		return
+	}
+	h.logger().Info("challenge_issued", "site", site.Slug, "protocol", "format2")
+	h.emit(r, site.Slug, "challenge", "pass", "", "format2", "", h.now()-start)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // ---------------------------------------------------------------- redeem
@@ -271,7 +306,7 @@ func (h *Handler) handleRedeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.applyCORS(w, r, site)
-	if h.rateLimited(w, r, site) {
+	if h.rateLimited(w, r, site, "redeem") {
 		return
 	}
 
@@ -295,6 +330,15 @@ func (h *Handler) handleRedeem(w http.ResponseWriter, r *http.Request) {
 		writeRedeemError(w, http.StatusBadRequest, "Missing required fields")
 		return
 	}
+
+	// format-2：JWT token（含点号）走无状态校验 + nonce 一次性占位。
+	// 解形状由 format2.Validate 自行校验（对象 + nonce 字段）。
+	if strings.Contains(body.Token, ".") {
+		h.handleRedeemV2(w, r, site, body, start)
+		return
+	}
+
+	// format-1：解必须是十进制整数数组。
 	solutions, ok2 := integerSolutions(body.Solutions)
 	if !ok2 {
 		writeRedeemError(w, http.StatusBadRequest, "Invalid solutions")
@@ -341,6 +385,65 @@ func (h *Handler) handleRedeem(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// format2Denial 是 reason → (状态码, 错误文案) 的 capd 语义映射。
+var format2Denial = map[string]struct {
+	status int
+	msg    string
+}{
+	format2.ReasonInvalidBody:     {http.StatusBadRequest, "Invalid solutions"},
+	format2.ReasonMissingToken:    {http.StatusBadRequest, "Missing required fields"},
+	format2.ReasonMissingSolution: {http.StatusBadRequest, "Invalid solutions"},
+	format2.ReasonBadSolutions:    {http.StatusBadRequest, "Invalid solutions"},
+	format2.ReasonExpired:         {http.StatusForbidden, "Challenge expired"},
+	format2.ReasonScopeMismatch:   {http.StatusForbidden, "Challenge token does not match site key"},
+	format2.ReasonInvalidToken:    {http.StatusForbidden, "Invalid challenge token"},
+	format2.ReasonAlreadyRedeemed: {http.StatusForbidden, "Challenge already redeemed"},
+	format2.ReasonBadSolution:     {http.StatusForbidden, "Invalid solution"},
+}
+
+// handleRedeemV2 校验 format-2 redeem 并签发通行 token。
+func (h *Handler) handleRedeemV2(w http.ResponseWriter, r *http.Request, site *policy.Site, body redeemBody, start int64) {
+	if site.SigningKey == "" {
+		writeRedeemError(w, http.StatusForbidden, "Invalid challenge token")
+		return
+	}
+	now := h.now()
+	res := format2.Validate(
+		format2.RedeemBody{Token: body.Token, Solutions: body.Solutions},
+		format2.ValidateOptions{
+			Secret:     []byte(site.SigningKey),
+			Scope:      site.Slug, // scope 必须 == 路径站点：跨站点 token 拒绝
+			TokenTtlMs: site.TokenTTL,
+			NowMs:      now,
+			ConsumeNonce: func(sigHex string, ttlMs int64) bool {
+				if h.Nonces == nil {
+					return true // 测试环境未接 nonce 存储：退化为可重放（仅限内存测试）
+				}
+				return h.Nonces.TryClaim("nonce:"+sigHex, now, now+ttlMs)
+			},
+		},
+	)
+	if !res.Success {
+		if d, ok := format2Denial[res.Reason]; ok {
+			h.logger().Info("redeem_fail", "site", site.Slug, "protocol", "format2", "reason", res.Reason)
+			h.emit(r, site.Slug, "redeem", "fail", res.Reason, "format2", tokenID(body.Token), h.now()-start)
+			writeRedeemError(w, d.status, d.msg)
+			return
+		}
+		writeRedeemError(w, http.StatusForbidden, "Validation failed")
+		return
+	}
+
+	h.Tokens.Put(res.TokenKey, res.Expires)
+	h.logger().Info("redeem_pass", "site", site.Slug, "protocol", "format2")
+	h.emit(r, site.Slug, "redeem", "pass", "", "format2", tokenID(site.Slug+":"+res.Token), h.now()-start)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"token":   site.Slug + ":" + res.Token,
+		"expires": res.Expires,
+	})
+}
+
 // ---------------------------------------------------------------- siteverify
 
 type siteVerifyBody struct {
@@ -355,7 +458,7 @@ func (h *Handler) verifyAgainstSite(w http.ResponseWriter, r *http.Request, site
 	got := sha256.Sum256([]byte(body.Secret))
 	if subtle.ConstantTimeCompare(want[:], got[:]) != 1 {
 		h.logger().Info("siteverify_fail", "site", site.Slug, "reason", "invalid_secret")
-		h.emit(r, site.Slug, "siteverify", "fail", "invalid_secret", "format1", tokenID(body.Response), h.now()-start)
+		h.emit(r, site.Slug, "siteverify", "fail", "invalid_secret", "", tokenID(body.Response), h.now()-start)
 		writeSiteVerifyError(w, http.StatusForbidden, "Invalid site key or secret")
 		return
 	}
@@ -364,11 +467,11 @@ func (h *Handler) verifyAgainstSite(w http.ResponseWriter, r *http.Request, site
 	if err != nil {
 		// capd：parts 数量/空段非法 → 400；site 段与路径不匹配 → 404
 		if strings.Count(body.Response, ":") == 2 && site.Slug != "" {
-			h.emit(r, site.Slug, "siteverify", "fail", "site_mismatch", "format1", tokenID(body.Response), h.now()-start)
+			h.emit(r, site.Slug, "siteverify", "fail", "site_mismatch", "", tokenID(body.Response), h.now()-start)
 			writeSiteVerifyError(w, http.StatusNotFound, "Invalid site key or secret")
 			return
 		}
-		h.emit(r, site.Slug, "siteverify", "fail", "malformed_token", "format1", "", h.now()-start)
+		h.emit(r, site.Slug, "siteverify", "fail", "malformed_token", "", "", h.now()-start)
 		writeSiteVerifyError(w, http.StatusBadRequest, "Missing required parameters")
 		return
 	}
@@ -376,15 +479,15 @@ func (h *Handler) verifyAgainstSite(w http.ResponseWriter, r *http.Request, site
 	switch h.Tokens.Consume(key, h.now()) {
 	case memory.TokenConsumed:
 		h.logger().Info("siteverify_pass", "site", site.Slug)
-		h.emit(r, site.Slug, "siteverify", "pass", "", "format1", tokenID(body.Response), h.now()-start)
+		h.emit(r, site.Slug, "siteverify", "pass", "", "", tokenID(body.Response), h.now()-start)
 		writeJSON(w, http.StatusOK, map[string]any{"success": true})
 	case memory.TokenExpired:
 		h.logger().Info("siteverify_fail", "site", site.Slug, "reason", "token_expired")
-		h.emit(r, site.Slug, "siteverify", "fail", "token_expired", "format1", tokenID(body.Response), h.now()-start)
+		h.emit(r, site.Slug, "siteverify", "fail", "token_expired", "", tokenID(body.Response), h.now()-start)
 		writeSiteVerifyError(w, http.StatusForbidden, "Token expired")
 	default: // TokenMissing：从未签发或已消费（重放）
 		h.logger().Info("siteverify_fail", "site", site.Slug, "reason", "token_not_found")
-		h.emit(r, site.Slug, "siteverify", "fail", "token_not_found", "format1", tokenID(body.Response), h.now()-start)
+		h.emit(r, site.Slug, "siteverify", "fail", "token_not_found", "", tokenID(body.Response), h.now()-start)
 		writeSiteVerifyError(w, http.StatusNotFound, "Token not found")
 	}
 }

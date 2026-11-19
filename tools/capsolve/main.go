@@ -30,8 +30,44 @@ type challengeResp struct {
 		S int `json:"s"`
 		D int `json:"d"`
 	} `json:"challenge"`
-	Token   string `json:"token"`
-	Expires int64  `json:"expires"`
+	Format     int    `json:"format"`
+	Token      string `json:"token"`
+	Expires    int64  `json:"expires"`
+	Challenges []struct {
+		Protocol string `json:"protocol"`
+		Payload  struct {
+			Salt   string `json:"salt"`
+			Target string `json:"target"`
+		} `json:"payload"`
+	} `json:"challenges"`
+}
+
+// solutionsV2 输出 format-2 解：[{nonce: N}, ...]（sha256-pow）。
+func solutionsV2(ch challengeResp, workers int) []map[string]any {
+	out := make([]map[string]any, len(ch.Challenges))
+	jobs := make(chan int, len(ch.Challenges))
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range jobs {
+				c := ch.Challenges[i]
+				if c.Protocol != "sha256-pow" {
+					fmt.Fprintf(os.Stderr, "不支持的协议：%s\n", c.Protocol)
+					os.Exit(1)
+				}
+				n := sha256pow.Solve(c.Payload.Salt, c.Payload.Target)
+				out[i] = map[string]any{"nonce": n}
+			}
+		}()
+	}
+	for i := range ch.Challenges {
+		jobs <- i
+	}
+	close(jobs)
+	wg.Wait()
+	return out
 }
 
 type redeemResp struct {
@@ -120,16 +156,28 @@ func main() {
 	if resp.StatusCode != 200 || ch.Token == "" {
 		fail("challenge 失败: status=%d body=%+v", resp.StatusCode, ch)
 	}
-	fmt.Printf("challenge: c=%d s=%d d=%d expires=%d\n", ch.Challenge.C, ch.Challenge.S, ch.Challenge.D, ch.Expires)
+	if ch.Format == 2 {
+		fmt.Printf("challenge: format=2 protocols=sha256-pow×%d expires=%d\n", len(ch.Challenges), ch.Expires)
+	} else {
+		fmt.Printf("challenge: c=%d s=%d d=%d expires=%d\n", ch.Challenge.C, ch.Challenge.S, ch.Challenge.D, ch.Expires)
+	}
 
-	// 2. solve
+	// 2. solve（format-1 或 format-2）
 	t0 := time.Now()
-	solutions := solve(ch, *workers)
-	fmt.Printf("solved:    %d 个挑战，耗时 %s\n", len(solutions), time.Since(t0).Round(time.Millisecond))
+	var body map[string]any
+	if ch.Format == 2 {
+		sols := solutionsV2(ch, *workers)
+		body = map[string]any{"token": ch.Token, "solutions": sols}
+		fmt.Printf("solved:    %d 个 sha256-pow 挑战（format-2），耗时 %s\n", len(sols), time.Since(t0).Round(time.Millisecond))
+	} else {
+		sols := solve(ch, *workers)
+		body = map[string]any{"token": ch.Token, "solutions": sols}
+		fmt.Printf("solved:    %d 个挑战（format-1），耗时 %s\n", len(sols), time.Since(t0).Round(time.Millisecond))
+	}
 
 	// 3. redeem
 	var rd redeemResp
-	resp, err = postJSON(*endpoint+"redeem", map[string]any{"token": ch.Token, "solutions": solutions}, &rd)
+	resp, err = postJSON(*endpoint+"redeem", body, &rd)
 	if err != nil {
 		fail("redeem 请求失败: %v", err)
 	}

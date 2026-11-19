@@ -19,10 +19,23 @@ func ValidSlug(s string) bool { return SlugRe.MatchString(s) }
 // CORSOrigin 是规范化后的 Origin（scheme://host[:port]，小写）。
 type CORSOrigin = string
 
+// 协议常量（PLAN.md §P2/P3：当前开放 format-1 与 format-2 sha256-pow）。
+const (
+	ProtocolFormat1 = "format1"
+	ProtocolFormat2 = "format2"
+)
+
+// ValidProtocol 校验站点协议取值。
+func ValidProtocol(p string) bool {
+	return p == ProtocolFormat1 || p == ProtocolFormat2
+}
+
 // Site 是一个站点的完整运行时策略。
 type Site struct {
 	Slug         string
+	Protocol     string // format1 | format2
 	Secret       string // siteverify 密钥（M2 起 AES-GCM 加密入库，运行时解密）
+	SigningKey   string // format-2 JWT 签名密钥（同上；不出服务端）
 	Name         string // 展示名（不入线协议）
 	Enabled      bool
 	Challenge    format1.ChallengeConfig
@@ -43,6 +56,7 @@ func NewSite(slug, secret string) (*Site, error) {
 	}
 	return &Site{
 		Slug:               slug,
+		Protocol:           ProtocolFormat1,
 		Secret:             secret,
 		Enabled:            true,
 		Challenge:          format1.ChallengeConfig{Count: format1.DefaultChallengeCount, Size: format1.DefaultChallengeSize, Difficulty: format1.DefaultChallengeDifficulty},

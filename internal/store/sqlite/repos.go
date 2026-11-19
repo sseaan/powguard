@@ -16,7 +16,7 @@ type SiteRepo struct{ db *sql.DB }
 
 func NewSiteRepo(db *sql.DB) *SiteRepo { return &SiteRepo{db: db} }
 
-const siteColumns = `id, slug, name, enabled, deleted, challenge_count, challenge_size,
+const siteColumns = `id, slug, protocol, name, enabled, deleted, challenge_count, challenge_size,
 	challenge_difficulty, challenge_ttl_ms, token_ttl_ms, cors_allow_all, cors_origins,
 	rate_limit_per_window, rate_limit_window_ms, created_at, updated_at`
 
@@ -24,7 +24,7 @@ func scanSite(row interface{ Scan(...any) error }) (*model.Site, error) {
 	s := &model.Site{}
 	var enabled, deleted, allowAll int
 	var origins string
-	err := row.Scan(&s.ID, &s.Slug, &s.Name, &enabled, &deleted,
+	err := row.Scan(&s.ID, &s.Slug, &s.Protocol, &s.Name, &enabled, &deleted,
 		&s.ChallengeCount, &s.ChallengeSize, &s.ChallengeDifficulty,
 		&s.ChallengeTTL, &s.TokenTTL, &allowAll, &origins,
 		&s.RateLimitPerWindow, &s.RateLimitWindowMs, &s.CreatedAt, &s.UpdatedAt)
@@ -48,11 +48,11 @@ func (r *SiteRepo) Create(s *model.Site) error {
 		s.CreatedAt = now
 	}
 	s.UpdatedAt = now
-	res, err := r.db.Exec(`INSERT INTO sites (slug, name, enabled, challenge_count,
+	res, err := r.db.Exec(`INSERT INTO sites (slug, protocol, name, enabled, challenge_count,
 		challenge_size, challenge_difficulty, challenge_ttl_ms, token_ttl_ms,
 		cors_allow_all, cors_origins, rate_limit_per_window, rate_limit_window_ms, created_at, updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		s.Slug, s.Name, b2i(s.Enabled), s.ChallengeCount, s.ChallengeSize,
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		s.Slug, model.ProtocolOrDefault(s.Protocol), s.Name, b2i(s.Enabled), s.ChallengeCount, s.ChallengeSize,
 		s.ChallengeDifficulty, s.ChallengeTTL, s.TokenTTL, b2i(s.CORSAllowAll), joinOrigins(s.CORSOrigins),
 		s.RateLimitPerWindow, s.RateLimitWindowMs, s.CreatedAt, s.UpdatedAt)
 	if err != nil {
@@ -95,12 +95,12 @@ func (r *SiteRepo) List() ([]*model.Site, error) {
 // Update 保存策略字段的修改。
 func (r *SiteRepo) Update(s *model.Site) error {
 	s.UpdatedAt = model.NowMs()
-	res, err := r.db.Exec(`UPDATE sites SET name=?, enabled=?,
+	res, err := r.db.Exec(`UPDATE sites SET protocol=?, name=?, enabled=?,
 		challenge_count=?, challenge_size=?, challenge_difficulty=?,
 		challenge_ttl_ms=?, token_ttl_ms=?, cors_allow_all=?, cors_origins=?,
 		rate_limit_per_window=?, rate_limit_window_ms=?, updated_at=?
 		WHERE id=? AND deleted=0`,
-		s.Name, b2i(s.Enabled), s.ChallengeCount, s.ChallengeSize, s.ChallengeDifficulty,
+		model.ProtocolOrDefault(s.Protocol), s.Name, b2i(s.Enabled), s.ChallengeCount, s.ChallengeSize, s.ChallengeDifficulty,
 		s.ChallengeTTL, s.TokenTTL, b2i(s.CORSAllowAll), joinOrigins(s.CORSOrigins),
 		s.RateLimitPerWindow, s.RateLimitWindowMs, s.UpdatedAt, s.ID)
 	if err != nil {

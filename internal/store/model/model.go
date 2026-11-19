@@ -9,7 +9,8 @@ type Site struct {
 	Slug                string
 	Name                string
 	Enabled             bool
-	Deleted             bool // 软删除：保留审计上下文（PLAN.md §3.2）
+	Deleted             bool   // 软删除：保留审计上下文（PLAN.md §3.2）
+	Protocol            string // format1 | format2（sha256-pow）
 	ChallengeCount      int
 	ChallengeSize       int
 	ChallengeDifficulty int
@@ -21,6 +22,19 @@ type Site struct {
 	RateLimitWindowMs   int64
 	CreatedAt           int64 // Unix 毫秒
 	UpdatedAt           int64
+}
+
+const (
+	ProtocolFormat1 = "format1"
+	ProtocolFormat2 = "format2"
+)
+
+// ProtocolOrDefault 归一化站点协议取值。
+func ProtocolOrDefault(p string) string {
+	if p == "" {
+		return ProtocolFormat1
+	}
+	return p
 }
 
 // Secret 字段名（AEAD AAD 的一部分）。

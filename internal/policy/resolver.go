@@ -66,9 +66,11 @@ func (r *DBResolver) Resolve(slug string) (*Site, bool) {
 func (r *DBResolver) build(m *model.Site) (*Site, bool) {
 	site := &Site{
 		Slug:               m.Slug,
+		Protocol:           m.Protocol,
 		Name:               m.Name,
 		Enabled:            m.Enabled,
 		Secret:             "", // 未配置密钥时保持空（siteverify 将拒绝所有请求）
+		SigningKey:         "", // format-2 缺签名密钥时 challenge 端点报 500
 		ChallengeTTL:       m.ChallengeTTL,
 		TokenTTL:           m.TokenTTL,
 		CORSAllowAll:       m.CORSAllowAll,
@@ -84,6 +86,12 @@ func (r *DBResolver) build(m *model.Site) (*Site, bool) {
 				site.Secret = string(plaintext)
 			}
 			// 解密失败：保持空 secret。siteverify 只会拒绝，不放大错误。
+		}
+		if sec, err := r.secrets.Get(m.ID, model.FieldSigning); err == nil && sec != nil {
+			if plaintext, err := r.box.Open(sec.Ciphertext, m.Slug, model.FieldSigning); err == nil {
+				site.SigningKey = string(plaintext)
+			}
+			// 解密失败：保持空；format-2 challenge 将 500，format-1 不受影响。
 		}
 	}
 	return site, true

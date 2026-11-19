@@ -34,9 +34,9 @@ siteverify ← { secret, response } → { success }   // 常数时间比较 secr
 - [x] SQLite 层（sites / site_secrets / admin_sessions / events / settings；secret 以 `CAPGO_MASTER_KEY` AES-256-GCM 加密 + AAD 绑定）
 - [x] 管理 API（admin key 登录、会话 cookie、CSRF、站点 CRUD、reveal/rotate 再认证、事件/统计查询）
 - [x] capsolve CLI（测试与压测工具）
-- [x] 真实浏览器 e2e（未修改 widget 0.1.63 + 同源 WASM）
+- [x] 真实浏览器 e2e（未修改 widget 0.1.63 + 同源 WASM，format-1 与 format-2 双格式）
+- [x] format-2 SHA-256 接入公开端点与按站点协议开关（scope 隔离、nonce 一次性、capd 错误语义）
 - [ ] WebUI v1（登录、密钥管理、集成片段、SSE 事件流、基础统计）
-- [ ] format-2 SHA-256 接入公开端点与按站点策略（核心库已双向对拍）
 - [ ] 部署（systemd + Caddy）与 Twikoo 对接验收
 
 ## 许可证
