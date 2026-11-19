@@ -13,6 +13,12 @@
 //
 // 首次启动（库中无站点）会用 CAPGO_SITE_SLUG / CAPGO_SITE_SECRET 引导首个站点；
 // 此后站点以 SQLite 为准（管理面板维护）。
+//
+// 运维子命令：
+//
+//	capgo keyrotate   --db <path> --old-key <k> --new-key <k>   # master key 轮换
+//	capgo backup      --db <path> --out <file>                  # 一致性快照
+//	capgo verify-keys --db <path> --master-key <k>              # 密文可解性校验
 package main
 
 import (
@@ -71,6 +77,11 @@ func parseMasterKey(s string) ([]byte, error) {
 }
 
 func main() {
+	// 运维子命令（keyrotate / backup / verify-keys）不启动 HTTP 服务
+	if handled, code := runOps(os.Args); handled {
+		os.Exit(code)
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 

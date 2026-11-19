@@ -1,0 +1,48 @@
+# capgo 生产部署示例（Caddy 反代 + HTTPS）
+#
+# 关键点：
+#   1. 反代到 127.0.0.1，只暴露 443；
+#   2. 显式传递真实客户端 IP（配合 CAPGO_TRUST_PROXY=127.0.0.1/8），
+#      否则限流会按 Caddy 的地址计数，所有访客共用一个桶；
+#   3. SSE（/admin/api/events/stream）不能被缓冲，需关掉 flush 延迟。
+
+cap.example.com {
+	encode zstd gzip
+
+	# 安全响应头（CSP 允许同源脚本，widget 需要 wasm）
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# 事件流：关缓冲、长超时
+	@stream path /admin/api/events/stream
+	reverse_proxy @stream 127.0.0.1:3000 {
+		flush_interval -1
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+
+	reverse_proxy 127.0.0.1:3000 {
+		# 真实客户端 IP：Caddy 默认设置 X-Forwarded-For，并移除客户端自带的伪造值
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 30s
+			write_timeout 30s
+			dial_timeout 5s
+		}
+	}
+
+	log {
+		output file /var/log/caddy/capgo.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+		format json
+	}
+}

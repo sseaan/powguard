@@ -1,0 +1,52 @@
+[Unit]
+Description=capgo — Cap PoW 人机验证服务
+Documentation=https://github.com/sseaan/capgo
+After=network-online.target
+Wants=network-online.target
+# 单实例语义：同一数据目录只允许一个进程（challenge/token 在内存）
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=capgo
+Group=capgo
+WorkingDirectory=/var/lib/capgo
+EnvironmentFile=/etc/capgo/capgo.env
+ExecStart=/usr/local/bin/capgo
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=20s
+
+# 日志：JSON 行输出到 journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=capgo
+
+# ---- 安全加固 ----
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# 唯一可写路径：SQLite 数据目录（WAL 需要写 -wal/-shm）
+ReadWritePaths=/var/lib/capgo
+UMask=0077
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

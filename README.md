@@ -37,7 +37,8 @@ siteverify ← { secret, response } → { success }   // 常数时间比较 secr
 - [x] 真实浏览器 e2e（未修改 widget 0.1.63 + 同源 WASM，format-1 与 format-2 双格式）
 - [x] format-2 SHA-256 接入公开端点与按站点协议开关（scope 隔离、nonce 一次性、capd 错误语义）
 - [x] WebUI v1（登录、概览统计、站点配置、集成片段、密钥 reveal/rotate、事件 SSE、实例设置）
-- [ ] 部署（systemd + Caddy）与 Twikoo 对接验收
+- [x] 部署交付（systemd hardening + Caddy + 备份/恢复/轮换脚本 + 部署文档）
+- [ ] 深圳生产机实际部署与 Twikoo 真机验收（需目标服务器执行 deploy/README.md）
 
 ## 许可证
 
